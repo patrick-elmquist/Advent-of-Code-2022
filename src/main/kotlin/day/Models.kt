@@ -21,6 +21,7 @@ data class Answer(
     val time: Duration
 )
 
+typealias Algorithm = ((Input) -> Any?)
 class Sheet {
     private val tests = mutableListOf<Test>()
 
@@ -30,6 +31,28 @@ class Sheet {
 
     var breakAdded: Boolean = false
     var ignore: Boolean = false
+
+    val part1 get() = parts.first { it.number == 1 }.algorithm
+
+    val part2 get() = parts.first { it.number == 2 }.algorithm
+
+    fun verify(expected: Any?, actual: Any?) {
+        check(expected == actual) {
+            println("Expected: $expected but got: $actual")
+        }
+    }
+
+    infix fun Algorithm.verify(input: Input): Any? =
+        invoke(input)
+
+    infix fun Algorithm.verify(string: String): Any? =
+        invoke(Input(string))
+
+    infix fun Algorithm.verify(lines: List<String>): Any? =
+        invoke(Input(lines))
+
+    infix fun Any?.expect(expected: Any?) =
+        verify(expected, this)
 
     fun part1(expected: Any? = null, block: (Input) -> Any?) = addPart(1, expected, block)
 

@@ -9,6 +9,7 @@ data class Input(val lines: List<String>) {
     val longs by lazy { lines.toLongs() }
     val single by lazy { lines.single() }
 
+    constructor(string: String) : this(string.split("\n"))
     constructor(day: Int) : this(File("./assets/input-day-$day.txt"))
     constructor(file: File) : this(file.readLines())
 }
