@@ -1,85 +1,46 @@
-
 import day.day
 
 // answer #1: 11906
 // answer #2: 11186
 
-const val rock = 1
-const val paper = 2
-const val scissor = 3
 fun main() {
     day(n = 2) {
         part1(expected = 11906) { input ->
-            input.lines.map { it.split(" ") }
-                .map {  (first, second) ->
-                    when (first.first()) {
-                        'A' -> {
-                            when (second.first()) {
-                                'X' -> rock + 3
-                                'Y' -> 6 + paper
-                                'Z' -> scissor
-                                else -> error("")
-                            }
-                        }
-                        'B' -> {
-                            when (second.first()) {
-                                'X' -> rock
-                                'Y' -> paper + 3
-                                'Z' -> 6 + scissor
-                                else -> error("")
-                            }
-                        }
-                        'C' -> {
-                            when (second.first()) {
-                                'X' -> 6 + rock
-                                'Y' -> paper
-                                'Z' -> scissor + 3
-                                else -> error("")
-                            }
-                        }
-                        else -> error("")
-                    }
-                }.sum()
-        }
+            input.lines.sumOf { line ->
+                val moveValue = line[2].code - 'W'.code
+                moveValue + when (line[0] to line[2]) {
+                    'A' to 'Y',
+                    'B' to 'Z',
+                    'C' to 'X' -> 6
 
-        val test = """
-            A Y
-            B X
-            C Z""".trimIndent()
-        part1 verify test expect 15
+                    'A' to 'X',
+                    'B' to 'Y',
+                    'C' to 'Z' -> 3
+
+                    else -> 0
+                }
+            }
+        }
 
         part2(expected = 11186) { input ->
-            input.lines.map { it.split(" ") }
-                .map {  (first, second) ->
-                    when (first.first()) {
-                        'A' -> {
-                            when (second.first()) {
-                                'X' -> scissor
-                                'Y' -> rock + 3
-                                'Z' -> paper + 6
-                                else -> error("")
-                            }
-                        }
-                        'B' -> {
-                            when (second.first()) {
-                                'X' -> rock
-                                'Y' -> paper + 3
-                                'Z' -> scissor + 6
-                                else -> error("")
-                            }
-                        }
-                        'C' -> {
-                            when (second.first()) {
-                                'X' -> paper
-                                'Y' -> scissor + 3
-                                'Z' -> rock + 6
-                                else -> error("")
-                            }
-                        }
-                        else -> error("")
+            input.lines.sumOf { line ->
+                val (opponent, outcome) = line[0] to line[2]
+                when (outcome) {
+                    'X' -> when (opponent) {
+                        'A' -> 3
+                        'B' -> 1
+                        else -> 2
                     }
-                }.sum()
+
+                    'Y' -> 3 + opponent.code - '@'.code
+
+                    else -> 6 + when (opponent) {
+                        'A' -> 2
+                        'B' -> 3
+                        else -> 1
+                    }
+                }
+            }
         }
-        part2 verify test expect 12
     }
 }
