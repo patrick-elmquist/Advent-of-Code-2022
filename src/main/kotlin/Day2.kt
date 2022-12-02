@@ -1,3 +1,4 @@
+import day.Input
 import day.day
 
 // answer #1: 11906
@@ -6,41 +7,25 @@ import day.day
 fun main() {
     day(n = 2) {
         part1(expected = 11906) { input ->
-            input.lines.sumOf { line ->
-                val moveValue = line[2].code - 'W'.code
-                moveValue + when (line[0] to line[2]) {
-                    'A' to 'Y',
-                    'B' to 'Z',
-                    'C' to 'X' -> 6
-
-                    'A' to 'X',
-                    'B' to 'Y',
-                    'C' to 'Z' -> 3
-
-                    else -> 0
-                }
+            input.parse().sumOf { (opponent, player) ->
+                score(opponent, player)
             }
         }
 
         part2(expected = 11186) { input ->
-            input.lines.sumOf { line ->
-                val (opponent, outcome) = line[0] to line[2]
-                when (outcome) {
-                    'X' -> when (opponent) {
-                        'A' -> 3
-                        'B' -> 1
-                        else -> 2
-                    }
-
-                    'Y' -> 3 + opponent.code - '@'.code
-
-                    else -> 6 + when (opponent) {
-                        'A' -> 2
-                        'B' -> 3
-                        else -> 1
-                    }
-                }
+            input.parse().sumOf { (opponent, outcome) ->
+                score(opponent, counterMoveFromOutcome(opponent, outcome))
             }
         }
     }
+}
+
+private fun Input.parse() = lines.map { it[0] - 'A' + 1 to it[2] - 'X' + 1 }
+
+private fun counterMoveFromOutcome(opponent: Int, outcome: Int): Int {
+    return 1 + (opponent + outcome).mod(3)
+}
+
+private fun score(opponent: Int, player: Int): Int {
+    return (1 + player - opponent).mod(3) * 3 + player
 }
