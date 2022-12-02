@@ -14,7 +14,7 @@ fun main() {
 
         part2(expected = 11186) { input ->
             input.parse().sumOf { (opponent, outcome) ->
-                score(opponent, counterMoveFromOutcome(opponent, outcome))
+                score(opponent, counterMoveForOutcome(opponent, outcome))
             }
         }
     }
@@ -22,7 +22,7 @@ fun main() {
 
 private fun Input.parse() = lines.map { it[0] - 'A' + 1 to it[2] - 'X' + 1 }
 
-private fun counterMoveFromOutcome(opponent: Int, outcome: Int): Int {
+private fun counterMoveForOutcome(opponent: Int, outcome: Int): Int {
     return 1 + (opponent + outcome).mod(3)
 }
 
