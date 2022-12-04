@@ -13,13 +13,13 @@ fun main() {
                 }
             }
 
-        part1 { input ->
+        part1(expected = 547) { input ->
             input.lines
                 .toNumberSets()
                 .count { (a, b) -> a.containsAll(b) || b.containsAll(a) }
         }
 
-        part2 { input ->
+        part2(expected = 843) { input ->
             input.lines
                 .toNumberSets()
                 .count { (a, b) -> a.intersect(b).isNotEmpty() }
