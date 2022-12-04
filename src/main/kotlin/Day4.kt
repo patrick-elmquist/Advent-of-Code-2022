@@ -5,7 +5,7 @@ import day.day
 
 fun main() {
     day(n = 4) {
-        fun List<String>.toSets() =
+        fun List<String>.toNumberSets() =
             map { line ->
                 line.split(',').map { pair ->
                     val (start, end) = pair.split("-")
@@ -15,13 +15,13 @@ fun main() {
 
         part1 { input ->
             input.lines
-                .toSets()
+                .toNumberSets()
                 .count { (a, b) -> a.containsAll(b) || b.containsAll(a) }
         }
 
         part2 { input ->
             input.lines
-                .toSets()
+                .toNumberSets()
                 .count { (a, b) -> a.intersect(b).isNotEmpty() }
         }
     }
