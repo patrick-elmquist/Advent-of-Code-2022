@@ -7,13 +7,13 @@ fun main() {
     day(n = 3) {
         part1(expected = 7763) { input ->
             input.lines.sumOf { line ->
-                val (left, right) = line.chunked(line.length / 2).map { it.toSet() }
+                val (left, right) = line.chunked(line.length / 2).map(String::toSet)
                 left.intersect(right).single().priority
             }
         }
         part2(expected = 2569) { input ->
             input.lines.chunked(3) { group ->
-                val (first, second, third) = group.map { line -> line.toSet() }
+                val (first, second, third) = group.map(String::toSet)
                 first.intersect(second).intersect(third).single().priority
             }.sum()
         }
