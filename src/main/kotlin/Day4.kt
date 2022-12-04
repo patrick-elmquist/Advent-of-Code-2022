@@ -5,10 +5,18 @@ import day.day
 
 fun main() {
     day(n = 4) {
+        fun List<String>.toIntRanges() =
+            map { line ->
+                line.split(',').map { pair ->
+                    val (start, end) = pair.split("-")
+                    (start.toInt()..end.toInt()).toSet()
+                }
+            }
+
         part1 { input ->
             input.lines
                 .toIntRanges()
-                .count { (a, b) -> a in b || b in a }
+                .count { (a, b) -> a.containsAll(b) || b.containsAll(a) }
         }
 
         part2 { input ->
@@ -19,12 +27,3 @@ fun main() {
     }
 }
 
-private fun List<String>.toIntRanges() = map { line ->
-    line.split(',').map {
-        val (start, end) = it.split("-")
-        start.toInt()..end.toInt()
-    }
-}
-
-private operator fun IntRange.contains(other: IntRange) =
-    other.first in this && other.last in this
