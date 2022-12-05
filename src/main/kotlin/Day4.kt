@@ -5,14 +5,6 @@ import day.day
 
 fun main() {
     day(n = 4) {
-        fun List<String>.toNumberSets() =
-            map { line ->
-                line.split(',').map { pair ->
-                    val (start, end) = pair.split("-")
-                    (start.toInt()..end.toInt()).toSet()
-                }
-            }
-
         part1(expected = 547) { input ->
             input.lines
                 .toNumberSets()
@@ -26,4 +18,12 @@ fun main() {
         }
     }
 }
+
+private fun List<String>.toNumberSets() =
+    map { line ->
+        line.split(',').map { pair ->
+            val (start, end) = pair.split("-")
+            (start.toInt()..end.toInt()).toSet()
+        }
+    }
 
