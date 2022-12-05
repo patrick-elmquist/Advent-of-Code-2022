@@ -1,5 +1,4 @@
-
-import common.log
+import day.Input
 import day.day
 import util.groupByBlank
 
@@ -8,82 +7,66 @@ import util.groupByBlank
 
 fun main() {
     day(n = 5) {
-        part1(expected = "PTWLTDSJV") {
-            val (top, instructions) = it.lines.groupByBlank()
-
-            val cols = top.last().trim().split("\\s+".toRegex()).count()
-            val list = List<MutableList<Char>>(cols) { mutableListOf() }
-
-            top.dropLast(1)
-                .forEach { line ->
-                    line.withIndex().filter {
-                        it.index in listOf(1, 5, 9, 13, 17, 21, 25, 29, 33, 37)
-                    }.map { it.value }.withIndex().filter { it.value != ' ' }.onEach{ it.log() }
-                        .forEach {
-                            list.get((it.index).coerceAtLeast(0)).add(it.value)
+        part1(expected = "PTWLTDSJV") { input ->
+            val (stacks, instructions) = input.parse()
+            instructions
+                .fold(stacks) { output, (count, from ,to) ->
+                    output.apply {
+                        repeat(count) {
+                            get(to).add(get(from).removeLast())
                         }
-                }
-
-            list.log()
-            instructions.forEach {
-                val split = it.split(" ")
-                val count = split[1].toInt()
-                val from = split[3].toInt() - 1
-                val to = split[5].toInt() - 1
-                repeat(count) {
-                    val item = list.get(from).removeFirst()
-                    list.get(to).add(0, item)
-                }
-            }
-            list.log()
-            list.map { it.first() }.joinToString("")
+                    }
+                }.output()
         }
 
-        val testInput = """
-            |    [D]    
-            |[N] [C]    
-            |[Z] [M] [P]
-            | 1   2   3 
-
-            |move 1 from 2 to 1
-            |move 3 from 1 to 3
-            |move 2 from 2 to 1
-            |move 1 from 1 to 2 """.trimMargin("|")
-        part1 verify testInput expect "CMZ"
-
-        part2(expected = "WZMFVGGZP") {
-            val (top, instructions) = it.lines.groupByBlank()
-
-            val cols = top.last().trim().split("\\s+".toRegex()).count()
-            val list = List<MutableList<Char>>(cols) { mutableListOf() }
-
-            top.dropLast(1)
-                .forEach { line ->
-                    line.withIndex().filter {
-                        it.index in listOf(1, 5, 9, 13, 17, 21, 25, 29, 33, 37)
-                    }.map { it.value }.withIndex().filter { it.value != ' ' }.onEach{ it.log() }
-                        .forEach {
-                            list.get((it.index).coerceAtLeast(0)).add(it.value)
+        part2(expected = "WZMFVGGZP") { input ->
+            val (stacks, instructions) = input.parse()
+            instructions
+                .fold(stacks) { output, (count, from, to) ->
+                    output.apply {
+                        val stackFrom = get(from)
+                        val end = stackFrom.size
+                        val items = stackFrom.subList(end - count, end).toList()
+                        repeat(count) {
+                            stackFrom.removeLast()
                         }
-                }
-
-            list.log()
-            instructions.forEach {
-                val split = it.split(" ")
-                val count = split[1].toInt()
-                val from = split[3].toInt() - 1
-                val to = split[5].toInt() - 1
-
-                val items = list.get(from).subList(0, count).toList().log()
-                repeat(count) {
-                    list.get(from).removeFirst()
-                }
-                list.get(to).addAll(0, items)
-                list.log()
-            }
-            list.log()
-            list.map { it.first() }.joinToString("")
+                        get(to).addAll(items)
+                    }
+                }.output()
         }
-        part2 verify testInput expect "MCD"
     }
 }
+
+private fun Input.parse(): Pair<Stacks, List<Instruction>> {
+    val (stacksInput, instructionsInput) = lines.groupByBlank()
+    return stacksInput.toStacks() to instructionsInput.toInstructions()
+}
+
+private fun List<String>.toStacks(): Stacks {
+    val cols = last().trim().split("\\s+".toRegex()).count()
+    return dropLast(1)
+        .reversed()
+        .fold(MutableList(cols) { mutableListOf() }) { stack, line ->
+            var index = 1
+            while (index < line.length) {
+                if (line[index] != ' ') {
+                    stack[index / 4].add(line[index])
+                }
+                index += 4
+            }
+            stack
+        }
+}
+
+private fun List<String>.toInstructions(): List<Instruction> {
+    val pattern = """move (\d+) from (\d+) to (\d+)""".toRegex()
+    return map { instruction ->
+        val (c, f, t) = pattern.matchEntire(instruction)?.destructured!!
+        Instruction(c.toInt(), f.toInt() - 1, t.toInt() - 1)
+    }
+}
+
+private typealias Stacks = List<MutableList<Char>>
+
+private fun Stacks.output() = map { it.last() }.joinToString("")
+private data class Instruction(val count: Int, val from: Int, val to: Int)
