@@ -5,6 +5,8 @@ import util.groupByBlank
 // answer #1: PTWLTDSJV
 // answer #2: WZMFVGGZP
 
+private const val INPUT_OFFSET = 4
+
 fun main() {
     day(n = 5) {
         part1(expected = "PTWLTDSJV") { input ->
@@ -60,7 +62,6 @@ private fun Input.parseInstructions(): List<Instruction> =
         }
     }
 
-private const val OFFSET = 4
 private fun Input.parseStacks(): Stacks =
     lines.groupByBlank().let { (top, _) ->
         val stackCount = top.last().trim().split("\\s+".toRegex()).count()
@@ -70,13 +71,12 @@ private fun Input.parseStacks(): Stacks =
             .reversed()
             .flatMap { line -> indices.map { index -> index to line[index] } }
             .filter { (_, c) -> c != ' ' }
-            .forEach { (i, c) -> initialStacks[i / OFFSET].add(c) }
+            .forEach { (i, c) -> initialStacks[i / INPUT_OFFSET].add(c) }
         return Stacks(initialStacks)
     }
 
 private fun generateIndices(count: Int): List<Int> {
-    var index = 1
-    return generateSequence { index.also { index += OFFSET } }
+    return generateSequence(1) { it + INPUT_OFFSET }
         .take(count)
         .toList()
 }
