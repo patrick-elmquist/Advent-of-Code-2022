@@ -69,9 +69,9 @@ private fun Input.parseStacks(): Stacks =
         val indices = generateIndices(stackCount)
         top.dropLast(1)
             .reversed()
-            .flatMap { line -> indices.map { index -> index to line[index] } }
-            .filter { (_, c) -> c != ' ' }
-            .forEach { (i, c) -> initialStacks[i / INPUT_OFFSET].add(c) }
+            .flatMap { line -> indices.map { index -> index to line.getOrNull(index) } }
+            .filter { (_, c) -> c != null && c != ' ' }
+            .forEach { (i, c) -> initialStacks[i / INPUT_OFFSET].add(c!!) }
         return Stacks(initialStacks)
     }
 

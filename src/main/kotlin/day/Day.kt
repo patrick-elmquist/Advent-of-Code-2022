@@ -7,15 +7,15 @@ import kotlin.time.measureTimedValue
 fun day(
     n: Int,
     block: Sheet.() -> Unit
-) = collectSolutions(block).verifyAndRun(input = Input(day = n))
+) = collectSolutions(n, block).verifyAndRun(input = Input(day = n))
 
-private inline fun collectSolutions(block: Sheet.() -> Unit): Sheet =
-    Sheet().apply(block)
+private inline fun collectSolutions(day: Int, block: Sheet.() -> Unit): Sheet =
+    Sheet(day = day).apply(block)
 
 private inline fun Sheet.verifyAndRun(input: Input) {
     parts.forEach { part ->
         print("Running Part #${part.number}...")
-        val result = part.evaluate(input)
+        val result = part.evaluate(input, tests = tests.filter { it.part == part.type })
         print("Answer: ")
         result
             .onSuccess {
@@ -24,17 +24,18 @@ private inline fun Sheet.verifyAndRun(input: Input) {
             .onFailure {
                 println(it.message)
             }
-        if (part.tests.isNotEmpty()) println()
+        if (tests.isNotEmpty()) println()
     }
 }
 
 private inline fun Part.evaluate(
-    input: Input
+    input: Input,
+    tests: List<Test>
 ): Result<Answer> {
     if (tests.isNotEmpty()) println("Verifying Part #${number}")
 
     val testsPassed = tests.all {
-        val testInput = Input(it.input.lines())
+        val testInput = it.input
         val result = runWithTimer(testInput)
         val testPassed = result.output == it.expected
 
