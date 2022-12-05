@@ -25,32 +25,6 @@ fun main() {
     }
 }
 
-private fun Input.parseInstructions(): List<Instruction> =
-    lines.groupByBlank().let { (_, bottom) ->
-        val pattern = """move (\d+) from (\d+) to (\d+)""".toRegex()
-        bottom.map { instruction ->
-            val (c, f, t) = pattern.matchEntire(instruction)?.destructured
-                ?: error("regex failed to match content for $instruction")
-            Instruction(c.toInt(), f.toInt() - 1, t.toInt() - 1)
-        }
-    }
-
-private fun Input.parseStacks(): Stacks =
-    lines.groupByBlank().let { (top, _) ->
-        val stacks = top.last().trim().split("\\s+".toRegex()).count()
-        top.dropLast(1)
-            .reversed()
-            .fold<String, List<MutableList<Char>>>(List(stacks) { mutableListOf() }) { stack, line ->
-                stack.apply {
-                    line.withIndex()
-                        .drop(1)
-                        .windowed(size = 1, step = 4) { it.first() }
-                        .filter { it.value != ' ' }
-                        .forEach { (index, char) -> get(index / 4).add(char) }
-                }
-            }.let { Stacks(it) }
-    }
-
 private data class Instruction(val count: Int, val from: Int, val to: Int)
 
 private data class Stacks(val stacks: List<List<Char>>) {
@@ -74,4 +48,35 @@ private data class Stacks(val stacks: List<List<Char>>) {
     }
 
     fun output() = stacks.map { it.last() }.joinToString("")
+}
+
+private fun Input.parseInstructions(): List<Instruction> =
+    lines.groupByBlank().let { (_, bottom) ->
+        val pattern = """move (\d+) from (\d+) to (\d+)""".toRegex()
+        bottom.map { instruction ->
+            val (c, f, t) = pattern.matchEntire(instruction)?.destructured
+                ?: error("regex failed to match content for $instruction")
+            Instruction(c.toInt(), f.toInt() - 1, t.toInt() - 1)
+        }
+    }
+
+private const val OFFSET = 4
+private fun Input.parseStacks(): Stacks =
+    lines.groupByBlank().let { (top, _) ->
+        val stackCount = top.last().trim().split("\\s+".toRegex()).count()
+        val initialStacks = List(stackCount) { mutableListOf<Char>() }
+        val indices = generateIndices(stackCount)
+        top.dropLast(1)
+            .reversed()
+            .flatMap { line -> indices.map { index -> index to line[index] } }
+            .filter { (_, c) -> c != ' ' }
+            .forEach { (i, c) -> initialStacks[i / OFFSET].add(c) }
+        return Stacks(initialStacks)
+    }
+
+private fun generateIndices(count: Int): List<Int> {
+    var index = 1
+    return generateSequence { index.also { index += OFFSET } }
+        .take(count)
+        .toList()
 }
