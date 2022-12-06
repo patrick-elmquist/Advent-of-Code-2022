@@ -6,6 +6,10 @@ import day.single
 
 fun main() {
     day(n = 6) {
+        fun String.findMarker(n: Int): Int =
+            n + windowed(size = n, transform = CharSequence::toSet)
+                .indexOfFirst { it.size == n }
+
         part1 { input ->
             input.single().findMarker(n = 4)
         }
@@ -15,9 +19,3 @@ fun main() {
         }
     }
 }
-
-private fun String.findMarker(n: Int): Int =
-    windowed(n, 1) { it.toSet() }
-        .withIndex()
-        .first { it.value.size == n }
-        .index + n
