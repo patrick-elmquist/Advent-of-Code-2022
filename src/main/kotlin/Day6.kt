@@ -10,11 +10,11 @@ fun main() {
             n + windowed(size = n, transform = CharSequence::toSet)
                 .indexOfFirst { it.size == n }
 
-        part1 { input ->
+        part1(expected = 1929) { input ->
             input.single().findMarker(n = 4)
         }
 
-        part2 { input ->
+        part2(expected = 3298) { input ->
             input.single().findMarker(n = 14)
         }
     }
