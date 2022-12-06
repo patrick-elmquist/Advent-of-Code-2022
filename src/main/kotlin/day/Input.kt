@@ -12,13 +12,13 @@ data class Input(val lines: List<String>) {
     constructor(file: File) : this(file.readLines())
 
     companion object {
-        private const val RESOURCES_PATH = "./src/main/resources/"
+        private const val PATH = "./src/main/resources/"
 
         private fun getInputFile(day: Int): File =
-            File("$RESOURCES_PATH/input-day-$day.txt")
+            File("$PATH/input-day-$day.txt")
 
         private fun getTestFile(day: Int, n: Int): File =
-            File("$RESOURCES_PATH/tests/test-day-$day-$n.txt")
+            File("$PATH/tests/test-day-$day-$n.txt")
     }
 }
 

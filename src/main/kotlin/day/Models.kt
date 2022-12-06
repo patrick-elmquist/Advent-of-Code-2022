@@ -2,34 +2,28 @@ package day
 
 import kotlin.time.Duration
 
-enum class PartNumber { One, Two }
+enum class PartId(val n: Int) { One(1), Two(2) }
 
 data class Part(
-    val type: PartNumber,
+    val partId: PartId,
     val algorithm: (Input) -> Any?,
-    val expected: Any?,
-    val testOnly: Boolean
+    val expected: Any?
 ) {
-    val number get() = when (type) {
-        PartNumber.One -> 1
-        PartNumber.Two -> 2
-    }
+    val number get() = partId.n
 }
 
 data class Test(
-    val part: PartNumber,
+    val partId: PartId,
     val input: Input,
     val expected: Any?
 )
 
 data class Answer(
-    val number: Int,
     val output: Any?,
     val time: Duration
 )
 
-typealias Algorithm = ((Input) -> Any?)
-
+@Suppress("unused")
 class Sheet(private val day: Int) {
     private val _parts = mutableListOf<Part>()
     val parts: List<Part>
@@ -39,59 +33,42 @@ class Sheet(private val day: Int) {
     val tests: List<Test>
         get() = _tests.toList()
 
-    var breakAdded: Boolean = false
-    var ignore: Boolean = false
+    var breakAfterTest: Boolean = false
+        private set
 
-    val part1 get() = TestBuilder(PartNumber.One)
+    val part1 get() = TestBuilder(PartId.One)
 
-    val part2 get() = TestBuilder(PartNumber.Two)
+    val part2 get() = TestBuilder(PartId.Two)
 
     fun part1(expected: Any? = null, block: (Input) -> Any?) =
-        addPart(PartNumber.One, expected, block)
+        addPart(PartId.One, expected, block)
 
     fun part2(expected: Any? = null, block: (Input) -> Any?) =
-        addPart(PartNumber.Two, expected, block)
+        addPart(PartId.Two, expected, block)
 
-    @Suppress("unused")
-    fun stop() {
-        breakAdded = true
+    fun breakAfterTest() {
+        breakAfterTest = true
     }
 
-    @Suppress("unused")
-    fun ignore() {
-        ignore = true
-    }
+    infix fun TestBuilder.test(test: Int): TestBuilder =
+        apply { input = Input(day = day, test = test) }
 
-    class TestBuilder(val part: PartNumber) {
-        var input: Input? = null
-    }
+    infix fun TestBuilder.test(string: String): TestBuilder =
+        apply { input = Input(string) }
 
-    infix fun TestBuilder.test(test: Int): TestBuilder {
-        input = Input(day = day, test = test)
-        return this
-    }
-
-    infix fun TestBuilder.test(string: String): TestBuilder {
-        input = Input(string)
-        return this
-    }
-
-    infix fun TestBuilder.test(lines: List<String>): TestBuilder {
-        input = Input(lines)
-        return this
-    }
+    infix fun TestBuilder.test(lines: List<String>): TestBuilder =
+        apply { input = Input(lines) }
 
     infix fun TestBuilder.expect(expected: Any?) {
-        if (!breakAdded) {
-            _tests += Test(part, requireNotNull(input), expected)
-        }
+        _tests += Test(part, requireNotNull(input), expected)
     }
 
-    private fun addPart(n: PartNumber, expected: Any?, block: (Input) -> Any?) {
-        check(_parts.none { it.type == n })
-        if (!ignore) {
-            _parts += Part(n, block, expected, breakAdded)
-        }
-        ignore = breakAdded
+    private fun addPart(n: PartId, expected: Any?, block: (Input) -> Any?) {
+        check(_parts.none { it.partId == n })
+        _parts += Part(n, block, expected)
+    }
+
+    class TestBuilder(val part: PartId) {
+        var input: Input? = null
     }
 }

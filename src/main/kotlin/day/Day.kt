@@ -14,9 +14,12 @@ private inline fun collectSolutions(day: Int, block: Sheet.() -> Unit): Sheet =
 
 private inline fun Sheet.verifyAndRun(input: Input) {
     parts.forEach { part ->
-        print("Running Part #${part.number}...")
-        val result = part.evaluate(input, tests = tests.filter { it.part == part.type })
-        print("Answer: ")
+        val result = part.evaluate(
+            input = input,
+            testOnly = breakAfterTest,
+            tests = tests.filter { it.partId == part.partId }
+        )
+        print("answer #${part.number}: ")
         result
             .onSuccess {
                 println("${it.output} (${it.time.inWholeMilliseconds}ms)")
@@ -30,6 +33,7 @@ private inline fun Sheet.verifyAndRun(input: Input) {
 
 private inline fun Part.evaluate(
     input: Input,
+    testOnly: Boolean,
     tests: List<Test>
 ): Result<Answer> {
     if (tests.isNotEmpty()) println("Verifying Part #${number}")
@@ -68,7 +72,7 @@ private inline fun Part.evaluate(
 }
 
 private inline fun Part.runWithTimer(input: Input): Answer =
-    measureTimedValue { algorithm(input) }.let { result -> Answer(number, result.value, result.duration) }
+    measureTimedValue { algorithm(input) }.let { result -> Answer(result.value, result.duration) }
 
 private inline fun success(answer: Answer) = Result.success(answer)
 private inline fun failure(message: String) = Result.failure<Answer>(AssertionError(message))
