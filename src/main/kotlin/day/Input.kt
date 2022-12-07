@@ -1,6 +1,6 @@
 package day
 
-import util.groupByBlank
+import util.sliceByBlank
 import util.toInts
 import util.toLongs
 import java.io.File
@@ -25,4 +25,4 @@ data class Input(val lines: List<String>) {
 fun Input.toInts() = lines.toInts()
 fun Input.toLongs() = lines.toLongs()
 fun Input.single() = lines.single()
-fun Input.groupByBlank() = lines.groupByBlank()
+fun Input.slicedByBlank() = lines.sliceByBlank()

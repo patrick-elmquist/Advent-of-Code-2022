@@ -1,11 +1,25 @@
 package util
 
-fun <T : Collection<String>> T.toInts() = map { it.toInt() }
-fun <T : Collection<String>> T.toLongs() = map { it.toLong() }
+fun Collection<String>.toInts() = map { it.toInt() }
+fun Collection<String>.toLongs() = map { it.toLong() }
 
-fun <T : List<E>, E : CharSequence> T.groupByBlank() =
-    (indices.filter { get(it).isEmpty() } + listOf(size))
-        .fold(mutableListOf<List<E>>() to 0) { (list, start), end ->
-            list.add(subList(start, end))
+fun List<String>.sliceByBlank() =
+    sliceBy(excludeMatch = true) { _, line -> line.isEmpty() }
+
+fun List<String>.sliceBy(
+    excludeMatch: Boolean = false,
+    breakCondition: (Int, String) -> Boolean
+) = indices.asSequence()
+    .filter { i -> breakCondition(i, get(i)) }
+    .drop(if (excludeMatch) 0 else 1)
+    .plus(size)
+    .fold(mutableListOf<List<String>>() to 0) { (list, start), end ->
+        list.add(subList(start, end))
+        if (excludeMatch) {
             list to end + 1
-        }.first.toList()
+        } else {
+            list to end
+        }
+    }
+    .first
+    .toList()

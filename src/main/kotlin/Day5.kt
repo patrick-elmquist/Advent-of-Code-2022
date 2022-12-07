@@ -1,6 +1,6 @@
 import day.Input
 import day.day
-import util.groupByBlank
+import util.sliceByBlank
 
 // answer #1: PTWLTDSJV
 // answer #2: WZMFVGGZP
@@ -53,7 +53,7 @@ private data class Stacks(val stacks: List<List<Char>>) {
 }
 
 private fun Input.parseInstructions(): List<Instruction> =
-    lines.groupByBlank().let { (_, bottom) ->
+    lines.sliceByBlank().let { (_, bottom) ->
         val pattern = """move (\d+) from (\d+) to (\d+)""".toRegex()
         bottom.map { instruction ->
             val (c, f, t) = pattern.matchEntire(instruction)?.destructured
@@ -63,7 +63,7 @@ private fun Input.parseInstructions(): List<Instruction> =
     }
 
 private fun Input.parseStacks(): Stacks =
-    lines.groupByBlank().let { (top, _) ->
+    lines.sliceByBlank().let { (top, _) ->
         val stackCount = top.last().trim().split("\\s+".toRegex()).count()
         val initialStacks = List(stackCount) { mutableListOf<Char>() }
         val indices = generateIndices(stackCount)
