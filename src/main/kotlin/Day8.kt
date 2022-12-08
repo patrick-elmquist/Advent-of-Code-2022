@@ -1,11 +1,11 @@
 
+import common.log
+import day.Input
 import day.day
 import util.Point
-import util.isValid
-import util.neighbors
 
 // answer #1: 1818
-// answer #2:
+// answer #2: 368368
 
 fun main() {
     day(n = 8) {
@@ -36,7 +36,7 @@ fun main() {
                 }
             }
             val maxX = input.lines.first().count()
-            val maxY= input.lines.count()
+            val maxY = input.lines.count()
             var mostDown = -1
             var mostUp = -1
             for (x in 0 until maxX) {
@@ -57,13 +57,13 @@ fun main() {
                     }
                 }
             }
-            input.lines.forEachIndexed { y, row ->
-                row.forEachIndexed { x, height ->
-                    print(shadow.get(Point(x, y)) ?: 0)
-                    print(" ")
-                }
-                println()
-            }
+//            input.lines.forEachIndexed { y, row ->
+//                row.forEachIndexed { x, height ->
+//                    print(shadow.get(Point(x, y)) ?: 0)
+//                    print(" ")
+//                }
+//                println()
+//            }
             all.count() - shadow.count { (_, shadows) -> shadows == 4 }
         }
         part1 test 1 expect 21
@@ -96,7 +96,7 @@ fun main() {
                 }
             }
             val maxX = input.lines.first().count()
-            val maxY= input.lines.count()
+            val maxY = input.lines.count()
             var mostDown = -1
             var mostUp = -1
             for (x in 0 until maxX) {
@@ -117,36 +117,68 @@ fun main() {
                     }
                 }
             }
-            val map = mutableMapOf<Point, Int>()
-            input.lines.forEachIndexed { y, row ->
-                row.forEachIndexed { x, height ->
+            input.lines.flatMapIndexed { y, row ->
+                row.mapIndexed { x, height ->
+                    val height = height.digitToInt()
                     val point = Point(x, y)
-                    print(shadow.get(point) ?: 0)
-                    print(" ")
-
-
-                    val p = all.getValue(point)
-                    val n = point.neighbors()
-                        .filter { it.isValid(maxX - 1, maxY - 1) }
-                        .map { all.getValue(it) }
-                        .sumOf {
-                            shadow.getValue(it)
-                        }
-
+                    val up = point.getAllInDirection(Direction.Up, input)
+                        .map { all.getValue(it) }.score(height)
+                    val down = point.getAllInDirection(Direction.Down, input)
+                        .map { all.getValue(it) }.score(height)
+                    val left = point.getAllInDirection(Direction.Left, input)
+                        .map { all.getValue(it) }.score(height)
+                    val right = point.getAllInDirection(Direction.Right, input)
+                        .map { all.getValue(it) }.score(height)
+                    (up * down * left * right).also { it.log("Score p:$point ") }
                 }
-                println()
-            }
-
-            all.count() - shadow.count { (_, shadows) -> shadows == 4 }
+            }.max().log("MAX:")
         }
         part2 test 1 expect 8
     }
 }
 
-private fun Point.addNeighbors(
-    maxX: Int,
-    maxY: Int,
-    visible: Set<Point>,
-    queue: MutableList<Point>
-) =
-    neighbors().filter { it.isValid(maxX, maxY) && it !in visible }.also { queue.addAll(it) }
+private fun List<Int>.score(height: Int): Int {
+    if (isEmpty()) return 0
+    if (first() >= height) return 1
+    var score = 0
+    forEach {
+        if (it < height) {
+            score++
+        } else {
+            score++
+            return score
+        }
+    }
+    return score
+}
+
+private enum class Direction { Up, Down, Left, Right }
+
+private fun Point.getAllInDirection(
+    direction: Direction,
+    input: Input
+) = getAllInDirection(direction, input.lines.first().count(), input.lines.count())
+
+private fun Point.getAllInDirection(
+    direction: Direction,
+    lenX: Int,
+    lenY: Int
+): List<Point> =
+    when (direction) {
+        Direction.Up -> {
+            if (y == 0) emptyList()
+            else (y - 1 downTo 0).map { Point(x, it) }
+        }
+        Direction.Down -> {
+            if (y == lenY - 1) emptyList()
+            else (y + 1 until lenY).map { Point(x, it) }
+        }
+        Direction.Left -> {
+            if (x == 0) emptyList()
+            else (x - 1 downTo 0).map { Point(it, y) }
+        }
+        Direction.Right -> {
+            if (x == lenX - 1) emptyList()
+            else (x + 1 until lenX).map { Point(it, y) }
+        }
+    }
