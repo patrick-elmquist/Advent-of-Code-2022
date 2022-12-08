@@ -8,40 +8,49 @@ import kotlin.math.max
 fun main() {
     day(n = 8) {
         part1(expected = 1818) { input ->
-            val grid = input.lines.mapIndexed { y, row ->
-                row.mapIndexed { x, height ->
-                    height.digitToInt()
-                }
-            }
-
-            val shadows = input.lines.map { row -> row.map { 0 }.toMutableList() }
-
-            val width = input.lines.first().count()
-            val height = input.lines.count()
+            val lines = input.lines
+            val grid = lines.map { row -> row.map(Char::digitToInt) }
+            val shadows = lines.map { row -> row.map { 0 }.toMutableList() }
 
             addHorizontalShadows(grid, shadows)
-            addVerticalShadows(width, grid, height, shadows)
+            addVerticalShadows(grid, shadows)
 
-            val totalTrees = width * height
-            totalTrees - shadows.sumOf { row -> row.count { it == 4 }}
+            val totalTrees = grid.size * grid.size
+            totalTrees - shadows.sumOf { row -> row.count { it == 4 } }
+
+            grid.flatMapIndexed { y, row ->
+                row.mapIndexed { x, treeHeight ->
+                    listOf(
+                        indicesInInDirection(y, Direction.Decrement, grid.size)
+                            .map { y -> grid[y][x] }.scoreIsVisible(treeHeight),
+                        indicesInInDirection(y, Direction.Increment, grid.size)
+                            .map { y -> grid[y][x] }.scoreIsVisible(treeHeight),
+                        indicesInInDirection(x, Direction.Decrement, grid.size)
+                            .map { x -> grid[y][x] }.scoreIsVisible(treeHeight),
+                        indicesInInDirection(x, Direction.Increment, grid.size)
+                            .map { x -> grid[y][x] }.scoreIsVisible(treeHeight)
+                    )
+                }
+            }.count {
+                it.any { it }
+            }
         }
         part1 test 1 expect 21
 
         part2(expected = 368368) { input ->
-            val grid = input.lines.map { row -> row.map { it.digitToInt() } }
-            val width = input.lines.first().count()
-            val height = input.lines.count()
+            val grid = input.lines.map { row -> row.map(Char::digitToInt) }
             grid.flatMapIndexed { y, row ->
                 row.mapIndexed { x, treeHeight ->
-                    val up = getAllInDirection(y, Operation.Decrement, height)
-                        .map { y -> grid[y][x] }.score(treeHeight, y)
-                    val down = getAllInDirection(y, Operation.Increment, height)
-                        .map { y -> grid[y][x] }.score(treeHeight, height - 1 - y)
-                    val left = getAllInDirection(x, Operation.Decrement, width)
-                        .map { x -> grid[y][x] }.score(treeHeight, x)
-                    val right = getAllInDirection(x, Operation.Increment, width)
-                        .map { x -> grid[y][x] }.score(treeHeight, width - 1 - x)
-                    up * down * left * right
+                    listOf(
+                        indicesInInDirection(y, Direction.Decrement, grid.size)
+                            .map { y -> grid[y][x] }.score(treeHeight, y),
+                        indicesInInDirection(y, Direction.Increment, grid.size)
+                            .map { y -> grid[y][x] }.score(treeHeight, grid.lastIndex - y),
+                        indicesInInDirection(x, Direction.Decrement, grid.size)
+                            .map { x -> grid[y][x] }.score(treeHeight, x),
+                        indicesInInDirection(x, Direction.Increment, grid.size)
+                            .map { x -> grid[y][x] }.score(treeHeight, grid.lastIndex - x)
+                    ).reduce(Int::times)
                 }
             }.max()
         }
@@ -50,27 +59,24 @@ fun main() {
 }
 
 private fun addVerticalShadows(
-    width: Int,
     grid: List<List<Int>>,
-    height: Int,
     shadow: List<MutableList<Int>>
 ) {
     var tallestDown: Int
     var tallestUp: Int
-    for (x in 0 until width) {
+    grid.forEachIndexed { index, row ->
+
+    }
+    for (x in grid.indices) {
         tallestDown = grid[0][x]
-        tallestUp = grid[height - 1][x]
-        for (y in 1 until height) {
+        tallestUp = grid[grid.size - 1][x]
+        for (y in 1 until grid.size) {
             val treeHeight = grid[y][x]
-            if (treeHeight <= tallestDown) {
-                shadow.increment(x, y)
-            }
+            if (treeHeight <= tallestDown) shadow.increment(x, y)
             tallestDown = max(tallestDown, treeHeight)
 
-            val treeHeight2 = grid[height - 1 - y][x]
-            if (treeHeight2 <= tallestUp) {
-                shadow.increment(x, height - 1 - y)
-            }
+            val treeHeight2 = grid[grid.size - 1 - y][x]
+            if (treeHeight2 <= tallestUp) shadow.increment(x, grid.size - 1 - y)
             tallestUp = max(tallestUp, treeHeight2)
         }
     }
@@ -83,16 +89,12 @@ private fun addHorizontalShadows(
     grid.forEachIndexed { y, row ->
         var tallest = row.first()
         row.withIndex().drop(1).forEach { (x, treeHeight) ->
-            if (treeHeight <= tallest) {
-                shadow.increment(x, y)
-            }
+            if (treeHeight <= tallest) shadow.increment(x, y)
             tallest = max(tallest, treeHeight)
         }
         tallest = row.last()
         row.withIndex().reversed().drop(1).forEach { (x, treeHeight) ->
-            if (treeHeight <= tallest) {
-                shadow.increment(x, y)
-            }
+            if (treeHeight <= tallest) shadow.increment(x, y)
             tallest = max(tallest, treeHeight)
         }
     }
@@ -101,6 +103,9 @@ private fun addHorizontalShadows(
 private fun List<MutableList<Int>>.increment(x: Int, y: Int) {
     this[y][x] = this[y][x] + 1
 }
+
+private fun Sequence<Int>.scoreIsVisible(height: Int)
+    = if (none()) true else !any { it >= height }
 
 private fun Sequence<Int>.score(height: Int, max: Int): Int {
     if (none()) return 0
@@ -112,10 +117,10 @@ private fun Sequence<Int>.score(height: Int, max: Int): Int {
     }
 }
 
-private enum class Operation { Decrement, Increment}
+private enum class Direction { Decrement, Increment}
 
-private fun getAllInDirection(value: Int, direction: Operation, height: Int) =
+private fun indicesInInDirection(value: Int, direction: Direction, height: Int) =
     when (direction) {
-        Operation.Decrement -> if (value == 0) emptySequence() else (value - 1 downTo 0).asSequence()
-        Operation.Increment -> if (value == height - 1) emptySequence() else (value + 1 until height).asSequence()
+        Direction.Increment -> if (value == height - 1) emptySequence() else (value + 1 until height).asSequence()
+        Direction.Decrement -> if (value == 0) emptySequence() else (value - 1 downTo 0).asSequence()
     }
