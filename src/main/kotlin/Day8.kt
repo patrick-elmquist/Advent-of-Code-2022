@@ -1,184 +1,121 @@
 
-import common.log
-import day.Input
 import day.day
-import util.Point
+import kotlin.math.max
 
 // answer #1: 1818
 // answer #2: 368368
 
 fun main() {
     day(n = 8) {
-        part1 { input ->
+        part1(expected = 1818) { input ->
             val grid = input.lines.mapIndexed { y, row ->
-                row.mapIndexed { x, height -> Point(x, y) to height.digitToInt() }
+                row.mapIndexed { x, height ->
+                    height.digitToInt()
+                }
             }
 
-            val shadow = mutableMapOf<Point, Int>()
-            val all = grid.flatten().toMap()
+            val shadows = input.lines.map { row -> row.map { 0 }.toMutableList() }
 
-            grid.forEachIndexed { y, row ->
-                var most = row.first().second
-                row.drop(1).forEachIndexed { x, (point, height) ->
-                    if (height <= most) {
-                        shadow[point] = shadow.getOrDefault(point, 0) + 1
-                    } else {
-                        most = height
-                    }
-                }
-                most = row.last().second
-                row.dropLast(1).reversed().forEachIndexed { x, (point, height) ->
-                    if (height <= most) {
-                        shadow[point] = shadow.getOrDefault(point, 0) + 1
-                    } else {
-                        most = height
-                    }
-                }
-            }
-            val maxX = input.lines.first().count()
-            val maxY = input.lines.count()
-            var mostDown = -1
-            var mostUp = -1
-            for (x in 0 until maxX) {
-                mostDown = grid[0][x].second
-                mostUp = grid[maxY - 1][x].second
-                for (y in 1 until maxY) {
-                    val (point, height) = grid.get(y).get(x)
-                    if (height <= mostDown) {
-                        shadow[point] = shadow.getOrDefault(point, 0) + 1
-                    } else {
-                        mostDown = height
-                    }
-                    val (point2, height2) = grid.get(maxY - 1 - y).get(x)
-                    if (height2 <= mostUp) {
-                        shadow[point2] = shadow.getOrDefault(point2, 0) + 1
-                    } else {
-                        mostUp = height2
-                    }
-                }
-            }
-//            input.lines.forEachIndexed { y, row ->
-//                row.forEachIndexed { x, height ->
-//                    print(shadow.get(Point(x, y)) ?: 0)
-//                    print(" ")
-//                }
-//                println()
-//            }
-            all.count() - shadow.count { (_, shadows) -> shadows == 4 }
+            val width = input.lines.first().count()
+            val height = input.lines.count()
+
+            addHorizontalShadows(grid, shadows)
+            addVerticalShadows(width, grid, height, shadows)
+
+            val totalTrees = width * height
+            totalTrees - shadows.sumOf { row -> row.count { it == 4 }}
         }
         part1 test 1 expect 21
 
-        part2 { input ->
-
-            val grid = input.lines.mapIndexed { y, row ->
-                row.mapIndexed { x, height -> Point(x, y) to height.digitToInt() }
-            }
-
-            val shadow = mutableMapOf<Point, Int>()
-            val all = grid.flatten().toMap()
-
-            grid.forEachIndexed { y, row ->
-                var most = row.first().second
-                row.drop(1).forEachIndexed { x, (point, height) ->
-                    if (height <= most) {
-                        shadow[point] = shadow.getOrDefault(point, 0) + 1
-                    } else {
-                        most = height
-                    }
+        part2(expected = 368368) { input ->
+            val grid = input.lines.map { row -> row.map { it.digitToInt() } }
+            val width = input.lines.first().count()
+            val height = input.lines.count()
+            grid.flatMapIndexed { y, row ->
+                row.mapIndexed { x, treeHeight ->
+                    val up = getAllInDirection(y, Operation.Decrement, height)
+                        .map { y -> grid[y][x] }.score(treeHeight, y)
+                    val down = getAllInDirection(y, Operation.Increment, height)
+                        .map { y -> grid[y][x] }.score(treeHeight, height - 1 - y)
+                    val left = getAllInDirection(x, Operation.Decrement, width)
+                        .map { x -> grid[y][x] }.score(treeHeight, x)
+                    val right = getAllInDirection(x, Operation.Increment, width)
+                        .map { x -> grid[y][x] }.score(treeHeight, width - 1 - x)
+                    up * down * left * right
                 }
-                most = row.last().second
-                row.dropLast(1).reversed().forEachIndexed { x, (point, height) ->
-                    if (height <= most) {
-                        shadow[point] = shadow.getOrDefault(point, 0) + 1
-                    } else {
-                        most = height
-                    }
-                }
-            }
-            val maxX = input.lines.first().count()
-            val maxY = input.lines.count()
-            var mostDown = -1
-            var mostUp = -1
-            for (x in 0 until maxX) {
-                mostDown = grid[0][x].second
-                mostUp = grid[maxY - 1][x].second
-                for (y in 1 until maxY) {
-                    val (point, height) = grid.get(y).get(x)
-                    if (height <= mostDown) {
-                        shadow[point] = shadow.getOrDefault(point, 0) + 1
-                    } else {
-                        mostDown = height
-                    }
-                    val (point2, height2) = grid.get(maxY - 1 - y).get(x)
-                    if (height2 <= mostUp) {
-                        shadow[point2] = shadow.getOrDefault(point2, 0) + 1
-                    } else {
-                        mostUp = height2
-                    }
-                }
-            }
-            input.lines.flatMapIndexed { y, row ->
-                row.mapIndexed { x, height ->
-                    val height = height.digitToInt()
-                    val point = Point(x, y)
-                    val up = point.getAllInDirection(Direction.Up, input)
-                        .map { all.getValue(it) }.score(height)
-                    val down = point.getAllInDirection(Direction.Down, input)
-                        .map { all.getValue(it) }.score(height)
-                    val left = point.getAllInDirection(Direction.Left, input)
-                        .map { all.getValue(it) }.score(height)
-                    val right = point.getAllInDirection(Direction.Right, input)
-                        .map { all.getValue(it) }.score(height)
-                    (up * down * left * right).also { it.log("Score p:$point ") }
-                }
-            }.max().log("MAX:")
+            }.max()
         }
         part2 test 1 expect 8
     }
 }
 
-private fun List<Int>.score(height: Int): Int {
-    if (isEmpty()) return 0
-    if (first() >= height) return 1
-    var score = 0
-    forEach {
-        if (it < height) {
-            score++
-        } else {
-            score++
-            return score
+private fun addVerticalShadows(
+    width: Int,
+    grid: List<List<Int>>,
+    height: Int,
+    shadow: List<MutableList<Int>>
+) {
+    var tallestDown: Int
+    var tallestUp: Int
+    for (x in 0 until width) {
+        tallestDown = grid[0][x]
+        tallestUp = grid[height - 1][x]
+        for (y in 1 until height) {
+            val treeHeight = grid[y][x]
+            if (treeHeight <= tallestDown) {
+                shadow.increment(x, y)
+            }
+            tallestDown = max(tallestDown, treeHeight)
+
+            val treeHeight2 = grid[height - 1 - y][x]
+            if (treeHeight2 <= tallestUp) {
+                shadow.increment(x, height - 1 - y)
+            }
+            tallestUp = max(tallestUp, treeHeight2)
         }
     }
-    return score
 }
 
-private enum class Direction { Up, Down, Left, Right }
+private fun addHorizontalShadows(
+    grid: List<List<Int>>,
+    shadow: List<MutableList<Int>>
+) {
+    grid.forEachIndexed { y, row ->
+        var tallest = row.first()
+        row.withIndex().drop(1).forEach { (x, treeHeight) ->
+            if (treeHeight <= tallest) {
+                shadow.increment(x, y)
+            }
+            tallest = max(tallest, treeHeight)
+        }
+        tallest = row.last()
+        row.withIndex().reversed().drop(1).forEach { (x, treeHeight) ->
+            if (treeHeight <= tallest) {
+                shadow.increment(x, y)
+            }
+            tallest = max(tallest, treeHeight)
+        }
+    }
+}
 
-private fun Point.getAllInDirection(
-    direction: Direction,
-    input: Input
-) = getAllInDirection(direction, input.lines.first().count(), input.lines.count())
+private fun List<MutableList<Int>>.increment(x: Int, y: Int) {
+    this[y][x] = this[y][x] + 1
+}
 
-private fun Point.getAllInDirection(
-    direction: Direction,
-    lenX: Int,
-    lenY: Int
-): List<Point> =
+private fun Sequence<Int>.score(height: Int, max: Int): Int {
+    if (none()) return 0
+    val score = takeWhile { it < height }.count()
+    return if (score == max) {
+        score
+    } else {
+        score + 1
+    }
+}
+
+private enum class Operation { Decrement, Increment}
+
+private fun getAllInDirection(value: Int, direction: Operation, height: Int) =
     when (direction) {
-        Direction.Up -> {
-            if (y == 0) emptyList()
-            else (y - 1 downTo 0).map { Point(x, it) }
-        }
-        Direction.Down -> {
-            if (y == lenY - 1) emptyList()
-            else (y + 1 until lenY).map { Point(x, it) }
-        }
-        Direction.Left -> {
-            if (x == 0) emptyList()
-            else (x - 1 downTo 0).map { Point(it, y) }
-        }
-        Direction.Right -> {
-            if (x == lenX - 1) emptyList()
-            else (x + 1 until lenX).map { Point(it, y) }
-        }
+        Operation.Decrement -> if (value == 0) emptySequence() else (value - 1 downTo 0).asSequence()
+        Operation.Increment -> if (value == height - 1) emptySequence() else (value + 1 until height).asSequence()
     }
