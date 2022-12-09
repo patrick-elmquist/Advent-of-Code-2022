@@ -1,7 +1,8 @@
 *.iml
 lib/
 build/
-.idea/
+.idea/*
+!.idea/fileTemplates/
 *.ipr
 *.iws
 out/
