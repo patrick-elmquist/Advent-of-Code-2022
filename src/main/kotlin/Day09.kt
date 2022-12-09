@@ -8,7 +8,7 @@ import util.neighbors
 
 fun main() {
     day(n = 9) {
-        part1 { input ->
+        part1(expected = 6642) { input ->
             val motions = input.lines.map(String::toDirectionAndDistance)
             val rope = Array(2) { Point(0, 0) }
             trackTail(rope, motions).size
