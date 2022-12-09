@@ -29,7 +29,7 @@ private fun trackTail(rope: Array<Point>, instructions: List<Pair<String, Int>>)
         instructions.forEach { (dir, dist) ->
             repeat(dist) {
                 rope[0] = rope.first().moveInDirection(dir)
-                for (i in 1..rope.lastIndex) {
+                for (i in 1 until rope.size) {
                     rope[i] = rope[i].follow(rope[i - 1])
                 }
                 add(rope.last())
