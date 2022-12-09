@@ -1,7 +1,7 @@
 
 import day.day
 import util.Point
-import util.neighbors
+import util.neighborsContainPoint
 
 // answer #1: 6642
 // answer #2: 2765
@@ -47,7 +47,7 @@ private fun Point.moveInDirection(dir: String) =
     }
 
 private fun Point.follow(head: Point): Point {
-    if (this in head.neighbors(diagonal = true, includeSelf = true)) {
+    if (neighborsContainPoint(head, diagonal = true, includeSelf = true)) {
         return this
     }
 
