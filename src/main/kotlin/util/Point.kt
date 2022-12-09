@@ -12,29 +12,22 @@ data class Point(val x: Int, val y: Int) {
     companion object
 }
 
-fun Point.isValid(maxX: Int, maxY: Int): Boolean {
-    if (x < 0 || x > maxX) return false
-    if (y < 0 || y > maxY) return false
-    return true
-}
-
 fun Point.neighbors(
     diagonal: Boolean = false,
     includeSelf: Boolean = false
-): Sequence<Point> =
-    sequence {
-        if (diagonal) yield(Point(x - 1, y - 1))
-        yield(copy(y = y - 1))
-        if (diagonal) yield(Point(x + 1, y - 1))
+) = sequence {
+    if (diagonal) yield(Point(x - 1, y - 1))
+    yield(copy(y = y - 1))
+    if (diagonal) yield(Point(x + 1, y - 1))
 
-        yield(copy(x = x - 1))
-        if (includeSelf) yield(this@neighbors)
-        yield(copy(x = x + 1))
+    yield(copy(x = x - 1))
+    if (includeSelf) yield(this@neighbors)
+    yield(copy(x = x + 1))
 
-        if (diagonal) yield(Point(x - 1, y + 1))
-        yield(copy(y = y + 1))
-        if (diagonal) yield(Point(x + 1, y + 1))
-    }
+    if (diagonal) yield(Point(x - 1, y + 1))
+    yield(copy(y = y + 1))
+    if (diagonal) yield(Point(x + 1, y + 1))
+}
 
 fun Point.neighborsContainPoint(
     point: Point,
