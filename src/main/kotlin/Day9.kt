@@ -1,9 +1,10 @@
+
 import day.day
 import util.Point
 import util.neighbors
 
 // answer #1: 6642
-// answer #2:
+// answer #2: 2765
 
 fun main() {
     day(n = 9) {
@@ -22,55 +23,70 @@ fun main() {
                 tail = move.second
             }
 
+            printRope(listOf(head, tail))
             visited.size
         }
         part1 test 1 expect 13
 
-        part2 { input ->
+        part2(expected = 2765) { input ->
             val instructions = input.lines.map {
                 val (dir, dist) = it.split(" ")
                 dir to dist.toInt()
             }
 
-            var rope = List(10) { Point(0, 0) }
+            var rope = MutableList(10) { Point(0, 0) }
             val visited = mutableSetOf(Point(0, 0))
+            printRope(rope)
             instructions.forEach { (dir, dist) ->
+                println("== $dir $dist ==")
                 repeat(dist) {
-                    printRope(rope)
-                    var head = rope.first()
-                    head = moveSingle(dir, head)
-                    rope = listOf(head) + rope.drop(1)
-                    printRope(rope)
-                    rope = rope.windowed(2) { (head, tail) ->
-                        moveBasedOn(dir, head = head, tail = tail)
+//                    printRope(rope)
+                    rope[0] = moveSingle(dir, rope.first())
+
+//                    printRope(rope)
+                    for (i in 1 until rope.size) {
+                        val prev = rope[i - 1]
+                        val current = rope[i]
+                        rope[i] = moveBasedOn(head = prev, tail = current)
                     }
+//                    println()
+//                    println()
                     visited += rope.last()
                 }
+                printRope(rope)
             }
 
             visited.size
         }
-        part2 test 1 expect 36
+        part2 test 2 expect 36
     }
 }
 
 private fun printRope(rope: List<Point>) {
-    val minX = rope.minOf { it.x }
-    val maxX = rope.maxOf { it.x }
-    val minY = rope.minOf { it.y }
-    val maxY = rope.maxOf { it.y }
+//    val minX = rope.minOf { it.x }
+//    val maxX = rope.maxOf { it.x }
+//    val minY = rope.minOf { it.y }
+//    val maxY = rope.maxOf { it.y }
+    val minX = -11
+    val maxX = 14
+    val minY = -15
+    val maxY = 5
     for (y in minY..maxY) {
         for (x in minX..maxX) {
             val p = rope.indexOf(Point(x, y))
             if (p > -1) {
-                val out = when(p) {
+                val out = when (p) {
                     0 -> 'H'
-                    9 -> 'T'
+//                    rope.lastIndex -> 'T'
                     else -> p
                 }
                 print("$out")
             } else {
-                print(".")
+                if (x == 0 && y == 0) {
+                    print("s")
+                } else {
+                    print(".")
+                }
             }
         }
         println()
@@ -82,6 +98,7 @@ private fun makeMove(head: Point, tail: Point, dir: String, dist: Int, visited: 
     var head = head
     var tail = tail
     repeat(dist) {
+//        printRope(listOf(head, tail))
         val (newHead, newTail) = makeMove(head, tail, dir)
         head = newHead
         tail = newTail
@@ -100,43 +117,16 @@ private fun moveSingle(dir: String, point: Point): Point {
     }
 }
 
-private fun moveBasedOn(dir: String, tail: Point, head: Point): Pair<String, Point> {
+private fun moveBasedOn(tail: Point, head: Point): Point {
     val distanceX = head.x - tail.x
     val distanceY = head.y - tail.y
-    return when (dir) {
-        "L" -> {
-            if (head.y == tail.y) {
-                "L" to tail.copy(x = head.x + 1)
-            } else {
-                tail.copy(x = head.x + 1, y = tail.y + if (distanceY < 0) -1 else 1)
-            }
-        }
-
-        "R" -> {
-            if (head.y == tail.y) {
-                "R" to tail.copy(x = head.x - 1)
-            } else {
-                tail.copy(x = head.x - 1, y = tail.y + if (distanceY < 0) -1 else 1)
-            }
-        }
-
-        "U" -> {
-            if (head.x == tail.x) {
-                "U" to tail.copy(y = head.y + 1)
-            } else {
-                tail.copy(y = head.y + 1, x = tail.x + if (distanceX < 0) -1 else 1)
-            }
-        }
-
-        "D" -> {
-            if (head.x == tail.x) {
-                "D" to tail.copy(y = head.y - 1)
-            } else {
-                tail.copy(y = head.y - 1, x = tail.x + if (distanceX < 0) -1 else 1)
-            }
-        }
-
-        else -> error("")
+    if (tail in head.neighbors(diagonal = true, includeSelf = true)) return tail
+    return if (head.x == tail.x) {
+        tail.copy(y = head.y + if (distanceY < 0) 1 else -1)
+    } else if (head.y == tail.y) {
+        tail.copy(x = head.x + if (distanceX < 0) 1 else -1)
+    } else {
+        tail.copy(x = tail.x + if (distanceX < 0) -1 else 1, y = tail.y + if (distanceY < 0) -1 else 1)
     }
 }
 
@@ -145,6 +135,6 @@ private fun makeMove(head: Point, tail: Point, dir: String): Pair<Point, Point> 
 
     if (tail in head.neighbors(diagonal = true, includeSelf = true)) return head to tail
 
-    val (_, tail) = moveBasedOn(dir, tail = tail, head = head)
+    val tail = moveBasedOn(tail = tail, head = head)
     return head to tail
 }
