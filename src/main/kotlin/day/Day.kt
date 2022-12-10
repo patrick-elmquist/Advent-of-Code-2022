@@ -2,6 +2,7 @@
 
 package day
 
+import org.openjdk.jmh.annotations.Benchmark
 import kotlin.time.measureTimedValue
 
 fun day(
@@ -12,6 +13,7 @@ fun day(
 private inline fun collectSolutions(day: Int, block: Sheet.() -> Unit): Sheet =
     Sheet(day = day).apply(block)
 
+// TODO move the majority of content in this file into some kind of runner class that can use the benchmark
 private inline fun Sheet.verifyAndRun(input: Input) {
     parts.forEach { part ->
         val result = part.evaluate(
@@ -71,6 +73,7 @@ private inline fun Part.evaluate(
     }
 }
 
+@Benchmark
 private inline fun Part.runWithTimer(input: Input): Answer =
     measureTimedValue { algorithm(input) }.let { result -> Answer(result.value, result.duration) }
 
