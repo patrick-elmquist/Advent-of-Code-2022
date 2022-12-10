@@ -13,13 +13,11 @@ fun main() {
     day(n = 10) {
         part1(expected = 17180) { input ->
             var signalSum = 0
-            var nextSample = 20
 
             input.lines.toRegisterIncrements()
                 .forEachCycle { cycle, x ->
-                    if (cycle == nextSample) {
+                    if (cycle % 40 == 20) {
                         signalSum += cycle * x
-                        nextSample += 40
                     }
                 }
 
