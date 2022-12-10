@@ -12,8 +12,8 @@ import day.day
 fun main() {
     day(n = 10) {
         part1(expected = 17180) { input ->
-            var nextSample = 20
             var signalSum = 0
+            var nextSample = 20
 
             input.lines.toRegisterIncrements()
                 .forEachCycle { cycle, x ->
