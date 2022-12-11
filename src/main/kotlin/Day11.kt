@@ -37,8 +37,8 @@ private fun List<String>.parseMonkeys(): Array<Monkey> =
                     .split(", ")
                     .map(String::toLong)
                     .toMutableList(),
-                op = lines[2].removePrefix("Operation: new = old ").split(" ").first(),
-                opValue = lines[2].removePrefix("Operation: new = old ").split(" ").last(),
+                operation = lines[2].removePrefix("Operation: new = old ").split(" ").first(),
+                operationValue = lines[2].removePrefix("Operation: new = old ").split(" ").last(),
                 divisibleBy = lines[3].substringAfterLast(" ").toLong(),
                 nextOnTrue = lines[4].substringAfterLast(" ").toInt(),
                 nextOnFalse = lines[5].substringAfterLast(" ").toInt()
@@ -65,8 +65,8 @@ private fun Array<Monkey>.calculateMonkeyBusiness(rounds: Int, applyRelief: (Lon
 private fun Monkey.throwItems(monkeys: Array<Monkey>, applyRelief: (Long) -> Long): Int =
     with(items) {
         forEach { level ->
-            val resolvedValue = if (opValue == "old") level else opValue.toLong()
-            val worryLevel = when (op) {
+            val resolvedValue = if (operationValue == "old") level else operationValue.toLong()
+            val worryLevel = when (operation) {
                 "+" -> applyRelief(level + resolvedValue)
                 else -> applyRelief(level * resolvedValue)
             }
@@ -79,8 +79,8 @@ private fun Monkey.throwItems(monkeys: Array<Monkey>, applyRelief: (Long) -> Lon
 data class Monkey(
     val id: Int,
     val items: MutableList<Long> = mutableListOf(),
-    val op: String,
-    val opValue: String,
+    val operation: String,
+    val operationValue: String,
     val divisibleBy: Long,
     val nextOnTrue: Int,
     val nextOnFalse: Int
