@@ -27,25 +27,6 @@ fun main() {
     }
 }
 
-private fun List<String>.parseMonkeys(): Array<Monkey> =
-    map(String::trim)
-        .sliceByBlank()
-        .mapIndexed { index, lines ->
-            Monkey(
-                id = index,
-                items = lines[1].removePrefix("Starting items: ")
-                    .split(", ")
-                    .map(String::toLong)
-                    .toMutableList(),
-                operation = lines[2].removePrefix("Operation: new = old ").split(" ").first(),
-                operationValue = lines[2].removePrefix("Operation: new = old ").split(" ").last(),
-                divisibleBy = lines[3].substringAfterLast(" ").toLong(),
-                nextOnTrue = lines[4].substringAfterLast(" ").toInt(),
-                nextOnFalse = lines[5].substringAfterLast(" ").toInt()
-            )
-        }
-        .toTypedArray()
-
 private fun Array<Monkey>.calculateMonkeyBusiness(rounds: Int, applyRelief: (Long) -> Long): Long {
     val throwCounter = Array(size) { 0 }
     repeat(rounds) {
@@ -85,3 +66,23 @@ data class Monkey(
     val nextOnTrue: Int,
     val nextOnFalse: Int
 )
+
+private fun List<String>.parseMonkeys(): Array<Monkey> =
+    map(String::trim)
+        .sliceByBlank()
+        .mapIndexed { index, lines ->
+            Monkey(
+                id = index,
+                items = lines[1].removePrefix("Starting items: ")
+                    .split(", ")
+                    .map(String::toLong)
+                    .toMutableList(),
+                operation = lines[2].removePrefix("Operation: new = old ").split(" ").first(),
+                operationValue = lines[2].removePrefix("Operation: new = old ").split(" ").last(),
+                divisibleBy = lines[3].substringAfterLast(" ").toLong(),
+                nextOnTrue = lines[4].substringAfterLast(" ").toInt(),
+                nextOnFalse = lines[5].substringAfterLast(" ").toInt()
+            )
+        }
+        .toTypedArray()
+
