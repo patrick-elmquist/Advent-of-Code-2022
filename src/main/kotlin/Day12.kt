@@ -3,7 +3,6 @@ import day.Input
 import day.day
 import util.Point
 import util.neighbors
-import java.util.*
 import kotlin.math.min
 
 // answer #1: 449
@@ -13,28 +12,30 @@ fun main() {
     day(n = 12) {
         part1(expected = 449) { input ->
             val (grid, start, end) = input.parseMapWithHeights()
-            findMinStepsFromStartToEnd(grid, start, end)
+            findAllMinDistancesFromEnd(grid, end).getValue(start)
         }
 
         part2(expected = 443) { input ->
             val (grid, _, end) = input.parseMapWithHeights()
-            grid.filter { (_, elevation) -> elevation == 0 }
-                .keys
-                .minOf { start -> findMinStepsFromStartToEnd(grid, start, end) }
+            val startCandidates = grid.filter { (_, elevation) -> elevation == 0 }.keys
+            findAllMinDistancesFromEnd(grid, end)
+                .filter { it.key in startCandidates }
+                .values
+                .min()
         }
     }
 }
 
-private fun findMinStepsFromStartToEnd(grid: Map<Point, Int>, start: Point, end: Point): Int {
+private fun findAllMinDistancesFromEnd(grid: Map<Point, Int>, start: Point): Map<Point, Int> {
     val steps = mutableMapOf(start to 0)
-    val queue = LinkedList<Point>().apply { add(start) }
+    val queue = mutableListOf(start)
     while (queue.isNotEmpty()) {
-        val point = queue.pop()
+        val point = queue.removeFirst()
         val currentElevation = grid.getValue(point)
         val currentSteps = steps.getValue(point)
         val neighborsToVisit = point.neighbors()
             .filter { it in grid }
-            .filter { grid.getValue(it) <= currentElevation + 1 }
+            .filter { grid.getValue(it) >= currentElevation - 1 }
             .mapNotNull {
                 val oldSteps = steps[it]
                 steps[it] = min(currentSteps + 1, oldSteps ?: Int.MAX_VALUE)
@@ -42,7 +43,7 @@ private fun findMinStepsFromStartToEnd(grid: Map<Point, Int>, start: Point, end:
             }
         queue.addAll(neighborsToVisit)
     }
-    return steps[end] ?: Int.MAX_VALUE
+    return steps
 }
 
 private fun Input.parseMapWithHeights(): MapWithHeights {
