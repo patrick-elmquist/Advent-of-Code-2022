@@ -12,75 +12,54 @@ import kotlin.math.min
 fun main() {
     day(n = 12) {
         part1(expected = 449) { input ->
-            val (grid, start, end) = input.parse()
+            val (grid, start, end) = input.parseMapWithHeights()
             findMinStepsFromStartToEnd(grid, start, end)
         }
-        part1 test 1 expect 31
 
         part2(expected = 443) { input ->
-            val (grid, _, end) = input.parse()
-            var result = Int.MAX_VALUE
-            input.lines.forEachIndexed { i, row ->
-                row.forEachIndexed { j, c ->
-                    if (c == 'S' || c == 'a') {
-                        result = min(
-                            result,
-                            findMinStepsFromStartToEnd(grid, Point(j, i), end)
-                        )
-                    }
-                }
-            }
-            result
+            val (grid, _, end) = input.parseMapWithHeights()
+            grid.filter { (_, elevation) -> elevation == 0 }
+                .keys
+                .minOf { start -> findMinStepsFromStartToEnd(grid, start, end) }
         }
-        part2 test 1 expect 29
     }
 }
 
-private fun findMinStepsFromStartToEnd(
-    grid: List<List<Int>>,
-    start: Point,
-    end: Point
-): Int {
-    val width = grid.first().indices
-    val height = grid.indices
+private fun findMinStepsFromStartToEnd(grid: Map<Point, Int>, start: Point, end: Point): Int {
     val steps = mutableMapOf(start to 0)
-    val queue = LinkedList<Point>()
-    queue.add(start)
+    val queue = LinkedList<Point>().apply { add(start) }
     while (queue.isNotEmpty()) {
         val point = queue.pop()
-
-        val currentElevation = grid[point.y][point.x]
+        val currentElevation = grid.getValue(point)
         val currentSteps = steps.getValue(point)
-        point.neighbors()
-            .filter { it.x in width && it.y in height }
-            .filter { grid[it.y][it.x] <= currentElevation + 1 }
-            .forEach {
-                val oldStep = steps[it]
-                steps[it] = if (oldStep == null) {
-                    currentSteps + 1
-                } else {
-                    min(currentSteps + 1, oldStep)
-                }
-                if (oldStep != steps.getValue(it)) {
-                    queue.add(it)
-                }
+        val neighborsToVisit = point.neighbors()
+            .filter { it in grid }
+            .filter { grid.getValue(it) <= currentElevation + 1 }
+            .mapNotNull {
+                val oldSteps = steps[it]
+                val newSteps = min(currentSteps + 1, oldSteps ?: Int.MAX_VALUE)
+                steps[it] = min(currentSteps + 1, oldSteps ?: Int.MAX_VALUE)
+                it.takeIf { newSteps != oldSteps }
             }
+        queue.addAll(neighborsToVisit)
     }
     return steps[end] ?: Int.MAX_VALUE
 }
 
-private fun Input.parse(): MapWithHeights {
+private fun Input.parseMapWithHeights(): MapWithHeights {
     var start: Point? = null
     var end: Point? = null
-    val grid = lines.mapIndexed { i, line ->
+    val grid = lines.flatMapIndexed { i, line ->
         line.mapIndexed { j, c ->
-            when (c) {
-                'S' -> 0.also { start = Point(j, i) }
-                'E' -> ('z' - 'a').also { end = Point(j, i) }
+            val point = Point(j, i)
+            val elevation = when (c) {
+                'S' -> 0.also { start = point }
+                'E' -> ('z' - 'a').also { end = point }
                 else -> c - 'a'
             }
+            point to elevation
         }
-    }
+    }.toMap()
 
     return MapWithHeights(
         grid,
@@ -89,4 +68,4 @@ private fun Input.parse(): MapWithHeights {
     )
 }
 
-data class MapWithHeights(val grid: List<List<Int>>, val start: Point, val end: Point)
+private data class MapWithHeights(val grid: Map<Point, Int>, val start: Point, val end: Point)
