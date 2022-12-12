@@ -37,9 +37,8 @@ private fun findMinStepsFromStartToEnd(grid: Map<Point, Int>, start: Point, end:
             .filter { grid.getValue(it) <= currentElevation + 1 }
             .mapNotNull {
                 val oldSteps = steps[it]
-                val newSteps = min(currentSteps + 1, oldSteps ?: Int.MAX_VALUE)
                 steps[it] = min(currentSteps + 1, oldSteps ?: Int.MAX_VALUE)
-                it.takeIf { newSteps != oldSteps }
+                it.takeIf { steps[it] != oldSteps }
             }
         queue.addAll(neighborsToVisit)
     }
