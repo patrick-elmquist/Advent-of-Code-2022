@@ -12,13 +12,14 @@ fun main() {
     day(n = 12) {
         part1(expected = 449) { input ->
             val (grid, start, end) = input.parseMapWithHeights()
-            findAllMinDistancesFromEnd(grid, end).getValue(start)
+            grid.findAllMinDistancesFrom(origin = end, target = start)
+                .getValue(start)
         }
 
         part2(expected = 443) { input ->
             val (grid, _, end) = input.parseMapWithHeights()
             val startCandidates = grid.filter { (_, elevation) -> elevation == 0 }.keys
-            findAllMinDistancesFromEnd(grid, end)
+            grid.findAllMinDistancesFrom(origin = end)
                 .filter { it.key in startCandidates }
                 .values
                 .min()
@@ -26,16 +27,22 @@ fun main() {
     }
 }
 
-private fun findAllMinDistancesFromEnd(grid: Map<Point, Int>, start: Point): Map<Point, Int> {
-    val steps = mutableMapOf(start to 0)
-    val queue = mutableListOf(start)
+private fun Map<Point, Int>.findAllMinDistancesFrom(
+    origin: Point,
+    target: Point? = null
+): Map<Point, Int> {
+    val steps = mutableMapOf(origin to 0)
+    val queue = mutableListOf(origin)
     while (queue.isNotEmpty()) {
         val point = queue.removeFirst()
-        val currentElevation = grid.getValue(point)
+
+        if (point == target) return steps
+
+        val currentElevation = getValue(point)
         val currentSteps = steps.getValue(point)
         val neighborsToVisit = point.neighbors()
-            .filter { it in grid }
-            .filter { grid.getValue(it) >= currentElevation - 1 }
+            .filter { it in this }
+            .filter { getValue(it) >= currentElevation - 1 }
             .mapNotNull {
                 val oldSteps = steps[it]
                 steps[it] = min(currentSteps + 1, oldSteps ?: Int.MAX_VALUE)
