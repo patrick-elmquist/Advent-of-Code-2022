@@ -12,98 +12,81 @@ import kotlin.math.min
 fun main() {
     day(n = 12) {
         part1(expected = 449) { input ->
-            val matrix = input.parse()
-            val width = matrix.first().size
-            val height = matrix.size
-
-            var start: Point? = null
-            var end: Point? = null
-            input.lines.forEachIndexed { i, row ->
-                row.forEachIndexed { j, c ->
-                    if (c == 'S') {
-                        start = Point(j, i)
-                    }
-                    if (c == 'E') {
-                        end = Point(j, i)
-                    }
-                }
-            }
-
-            extracted(start!!, matrix, width, height, end)
+            val (grid, start, end) = input.parse()
+            findMinStepsFromStartToEnd(grid, start, end)
         }
         part1 test 1 expect 31
 
         part2(expected = 443) { input ->
-            val matrix = input.parse()
-            val width = matrix.first().size
-            val height = matrix.size
-
-            var end: Point? = null
-            input.lines.forEachIndexed { i, row ->
-                row.forEachIndexed { j, c ->
-                    if (c == 'E') {
-                        end = Point(j, i)
-                    }
-                }
-            }
-            val result = mutableMapOf<Point, Int>()
+            val (grid, _, end) = input.parse()
+            var result = Int.MAX_VALUE
             input.lines.forEachIndexed { i, row ->
                 row.forEachIndexed { j, c ->
                     if (c == 'S' || c == 'a') {
-                        val s = Point(j, i)
-                        result[s] = extracted(s, matrix, width, height, end)
+                        result = min(
+                            result,
+                            findMinStepsFromStartToEnd(grid, Point(j, i), end)
+                        )
                     }
                 }
             }
-            result.values.min()
+            result
         }
         part2 test 1 expect 29
     }
 }
 
-private fun extracted(
+private fun findMinStepsFromStartToEnd(
+    grid: List<List<Int>>,
     start: Point,
-    matrix: Array<Array<Int>>,
-    width: Int,
-    height: Int,
-    end: Point?
+    end: Point
 ): Int {
+    val width = grid.first().indices
+    val height = grid.indices
     val steps = mutableMapOf(start to 0)
     val queue = LinkedList<Point>()
     queue.add(start)
     while (queue.isNotEmpty()) {
-        val p = queue.pop()
+        val point = queue.pop()
 
-        val elevation = matrix[p.y][p.x]
-        val step = steps.getValue(p)
-        p.neighbors()
-            .filter { it.x in 0 until width && it.y in 0 until height }
-            .filter {
-                val itElevation = matrix[it.y][it.x]
-                itElevation <= elevation + 1
-            }
+        val currentElevation = grid[point.y][point.x]
+        val currentSteps = steps.getValue(point)
+        point.neighbors()
+            .filter { it.x in width && it.y in height }
+            .filter { grid[it.y][it.x] <= currentElevation + 1 }
             .forEach {
                 val oldStep = steps[it]
-                if (oldStep == null) {
-                    steps[it] = step + 1
+                steps[it] = if (oldStep == null) {
+                    currentSteps + 1
                 } else {
-                    steps[it] = min(step + 1, oldStep)
+                    min(currentSteps + 1, oldStep)
                 }
                 if (oldStep != steps.getValue(it)) {
                     queue.add(it)
                 }
             }
     }
-    return steps[end!!] ?: Int.MAX_VALUE
+    return steps[end] ?: Int.MAX_VALUE
 }
 
-private fun Input.parse(): Array<Array<Int>> =
-    lines.map { line ->
-        line.map {
-            when (it) {
-                'S' -> 0
-                'E' -> 'z' - 'a'
-                else -> it - 'a'
+private fun Input.parse(): MapWithHeights {
+    var start: Point? = null
+    var end: Point? = null
+    val grid = lines.mapIndexed { i, line ->
+        line.mapIndexed { j, c ->
+            when (c) {
+                'S' -> 0.also { start = Point(j, i) }
+                'E' -> ('z' - 'a').also { end = Point(j, i) }
+                else -> c - 'a'
             }
-        }.toTypedArray()
-    }.toTypedArray()
+        }
+    }
+
+    return MapWithHeights(
+        grid,
+        requireNotNull(start),
+        requireNotNull(end)
+    )
+}
+
+data class MapWithHeights(val grid: List<List<Int>>, val start: Point, val end: Point)
