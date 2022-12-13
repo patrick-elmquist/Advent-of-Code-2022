@@ -2,13 +2,19 @@
 
 package day
 
-import org.openjdk.jmh.annotations.Benchmark
+import kotlinx.coroutines.runBlocking
 import kotlin.time.measureTimedValue
 
 fun day(
     n: Int,
     block: Sheet.() -> Unit
-) = collectSolutions(n, block).verifyAndRun(input = Input(day = n))
+) = runBlocking {
+    if (makeSureInputFileIsAvailable(n)) {
+        collectSolutions(n, block).verifyAndRun(input = Input(day = n))
+    } else {
+        println("Input file is not available")
+    }
+}
 
 private inline fun collectSolutions(day: Int, block: Sheet.() -> Unit): Sheet =
     Sheet(day = day).apply(block)
@@ -73,7 +79,6 @@ private inline fun Part.evaluate(
     }
 }
 
-@Benchmark
 private inline fun Part.runWithTimer(input: Input): Answer =
     measureTimedValue { algorithm(input) }.let { result -> Answer(result.value, result.duration) }
 

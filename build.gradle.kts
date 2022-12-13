@@ -1,5 +1,5 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import kotlinx.benchmark.gradle.JvmBenchmarkTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.8.0-RC"
@@ -17,6 +17,10 @@ repositories {
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.8.0-RC")
     implementation("org.jetbrains.kotlinx:kotlinx-benchmark-runtime:0.4.6")
+    implementation("io.ktor:ktor-client-java:2.2.1")
+    implementation("io.ktor:ktor-client-logging:2.2.1")
+    implementation("ch.qos.logback:logback-classic:1.4.5")
+
 }
 
 benchmark {

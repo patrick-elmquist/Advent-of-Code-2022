@@ -11,15 +11,7 @@ data class Input(val lines: List<String>) {
     constructor(day: Int, test: Int) : this(getTestFile(day = day, n = test))
     constructor(file: File) : this(file.readLines())
 
-    companion object {
-        private const val PATH = "./src/main/resources/"
-
-        private fun getInputFile(day: Int): File =
-            File("$PATH/input-day-$day.txt")
-
-        private fun getTestFile(day: Int, n: Int): File =
-            File("$PATH/tests/test-day-$day-$n.txt")
-    }
+    companion object
 }
 
 fun Input.toInts() = lines.toInts()
