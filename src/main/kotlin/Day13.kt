@@ -20,11 +20,11 @@ fun main() {
                 .filter { it.isNotBlank() }
                 .map(::parseToPacket)
 
-            val dividers = listOf(Nested(Value(2)), Nested(Value(6)))
-            (packets + dividers).asSequence()
+            val dividerPackets = listOf(Nested(Value(2)), Nested(Value(6)))
+            (packets + dividerPackets).asSequence()
                 .sorted()
                 .withIndex()
-                .filter { (_, packet) -> packet in dividers }
+                .filter { (_, packet) -> packet in dividerPackets }
                 .map { (index, _) -> index + 1 }
                 .reduce(Int::times)
         }
@@ -86,8 +86,8 @@ private sealed class Packet : Comparable<Packet> {
         }
 
         this is Nested && other is Nested -> {
-            content.zip(other.content).forEach { (l, r) ->
-                val compare = l.compareTo(r)
+            content.zip(other.content).forEach { (left, right) ->
+                val compare = left.compareTo(right)
                 if (compare != 0) return compare
             }
             content.size.compareTo(other.content.size)
