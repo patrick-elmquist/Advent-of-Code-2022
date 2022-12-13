@@ -7,20 +7,20 @@ import day.day
 fun main() {
     day(n = 2) {
         part1(expected = 11906) { input ->
-            input.parse().sumOf { (opponent, player) ->
+            input.parseToPacket().sumOf { (opponent, player) ->
                 score(opponent, player)
             }
         }
 
         part2(expected = 11186) { input ->
-            input.parse().sumOf { (opponent, outcome) ->
+            input.parseToPacket().sumOf { (opponent, outcome) ->
                 score(opponent, counterMoveForOutcome(opponent, outcome))
             }
         }
     }
 }
 
-private fun Input.parse() = lines.map { it[0] - 'A' + 1 to it[2] - 'X' + 1 }
+private fun Input.parseToPacket() = lines.map { it[0] - 'A' + 1 to it[2] - 'X' + 1 }
 
 private fun counterMoveForOutcome(opponent: Int, outcome: Int): Int {
     return 1 + (opponent + outcome).mod(3)

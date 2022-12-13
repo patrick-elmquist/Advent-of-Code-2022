@@ -8,100 +8,100 @@ fun main() {
     day(n = 13) {
         part1(expected = 5717) { input ->
             input.lines.sliceByBlank()
-                .map { it.map(::parse) }
-                .mapIndexed { index, (left, right) ->
-                    if (left < right) index + 1 else 0
-                }.sum()
+                .map { it.map(::parseToPacket) }
+                .mapIndexedNotNull { index, (left, right) -> index.takeIf { left < right } }
+                .sumOf { it + 1 }
         }
         part1 test 1 expect 13
 
         part2(expected = 25935) { input ->
-            val packets = input.lines.filter { it.isNotBlank() }.map(::parse)
-            val dividerTwo = TokenList(Raw(2))
-            val dividerSix = TokenList(Raw(6))
-            val sorted = (packets + dividerTwo + dividerSix).sorted()
-            (sorted.indexOf(dividerTwo) + 1) * (sorted.indexOf(dividerSix) + 1)
+            val packets = input.lines.filter { it.isNotBlank() }.map(::parseToPacket)
+            val dividerTwo = Nested(Value(2))
+            val dividerSix = Nested(Value(6))
+            val sortedPackets = (packets + dividerTwo + dividerSix).sorted()
+            (sortedPackets.indexOf(dividerTwo) + 1) * (sortedPackets.indexOf(dividerSix) + 1)
 
         }
         part2 test 1 expect 140
     }
 }
 
-private fun parse(line: String): Token {
-    val trimmed = line.removeSurrounding("[", "]")
-    if (trimmed.isEmpty()) return TokenList(emptyList())
-    trimmed.toIntOrNull()?.let { return Raw(it) }
-    val tokens = mutableListOf<Token>()
-    var remaining = trimmed
-    while (remaining.isNotEmpty()) {
-        remaining = when {
-            remaining.startsWith(',') -> {
-                remaining.drop(1)
+private fun parseToPacket(input: String): Packet {
+    val unwrapped = input.removeSurrounding("[", "]")
+
+    if (unwrapped.isEmpty()) {
+        return Nested(emptyList())
+    }
+
+    if (unwrapped.toIntOrNull() != null) {
+        return Value(unwrapped.toInt())
+    }
+
+    var line = unwrapped
+    val packets = mutableListOf<Packet>()
+    while (line.isNotEmpty()) {
+        line = when {
+            line.startsWith(',') -> {
+                line.drop(1)
             }
 
-            remaining.startsWith("[") -> {
-                var level = 0
-                var index = -1
-                for (i in remaining.indices) {
-                    when (remaining[i]) {
-                        '[' -> {
-                            level++
-                        }
-
-                        ']' -> {
-                            level--
-                            if (level == 0) {
-                                index = i
-                                break
-                            }
-                        }
-                    }
-                }
-                val substring = remaining.substring(0, index + 1)
-                tokens.add(parse(substring))
-                remaining.drop(substring.length)
+            line.startsWith("[") -> {
+                val nextBlock = getNextBlock(line)
+                packets.add(parseToPacket(nextBlock))
+                line.drop(nextBlock.length)
             }
 
             else -> {
-                val substring = remaining.substringBefore(',')
-                tokens.add(Raw(substring.toInt()))
-                remaining.drop(substring.length)
+                val value = line.substringBefore(',')
+                packets.add(Value(value.toInt()))
+                line.drop(value.length)
             }
         }
     }
-    return TokenList(tokens)
+    return Nested(packets)
 }
 
-private sealed class Token : Comparable<Token> {
-    override fun compareTo(other: Token): Int =
-        when {
-            this is Raw && other is Raw -> {
-                value - other.value
-            }
-
-            this is TokenList && other is TokenList -> {
-                content.zip(other.content).forEach { (l, r) ->
-                    val compare = l.compareTo(r)
-                    if (compare != 0) return compare
-                }
-                content.size - other.content.size
-            }
-
-            this is Raw && other is TokenList -> {
-                TokenList(this).compareTo(other)
-            }
-
-            this is TokenList && other is Raw -> {
-                compareTo(TokenList(other))
-            }
-
-            else -> {
-                error("left:$this right:$other")
-            }
+private fun getNextBlock(remaining: String): String {
+    var level = 0
+    remaining.forEachIndexed { index, c ->
+        when (c) {
+            '[' -> level++
+            ']' -> level--
         }
+        if (level == 0) return remaining.substring(0, index + 1)
+    }
+    error("failed to find block $remaining")
 }
 
-private data class Raw(val value: Int) : Token()
-private data class TokenList(val content: List<Token>) : Token() {
-    constructor(vararg tokenList: Token) : this(tokenList.toList())
+private sealed class Packet : Comparable<Packet> {
+    override fun compareTo(other: Packet): Int = when {
+        this is Value && other is Value -> {
+            value.compareTo(other.value)
+        }
+
+        this is Nested && other is Nested -> {
+            content.zip(other.content).forEach { (l, r) ->
+                val compare = l.compareTo(r)
+                if (compare != 0) return compare
+            }
+            content.size.compareTo(other.content.size)
+        }
+
+        this is Value && other is Nested -> {
+            Nested(this).compareTo(other)
+        }
+
+        this is Nested && other is Value -> {
+            this.compareTo(Nested(other))
+        }
+
+        else -> {
+            error("left:$this right:$other")
+        }
+    }
+}
+
+private data class Value(val value: Int) : Packet()
+private data class Nested(val content: List<Packet>) : Packet() {
+    constructor(vararg packets: Packet) : this(packets.toList())
 }
