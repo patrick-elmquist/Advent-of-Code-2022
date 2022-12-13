@@ -7,7 +7,8 @@ import util.sliceByBlank
 fun main() {
     day(n = 13) {
         part1(expected = 5717) { input ->
-            input.lines.sliceByBlank()
+            input.lines
+                .sliceByBlank()
                 .map { it.map(::parseToPacket) }
                 .mapIndexedNotNull { index, (left, right) -> index.takeIf { left < right } }
                 .sumOf { it + 1 }
@@ -15,12 +16,17 @@ fun main() {
         part1 test 1 expect 13
 
         part2(expected = 25935) { input ->
-            val packets = input.lines.filter { it.isNotBlank() }.map(::parseToPacket)
-            val dividerTwo = Nested(Value(2))
-            val dividerSix = Nested(Value(6))
-            val sortedPackets = (packets + dividerTwo + dividerSix).sorted()
-            (sortedPackets.indexOf(dividerTwo) + 1) * (sortedPackets.indexOf(dividerSix) + 1)
+            val packets = input.lines
+                .filter { it.isNotBlank() }
+                .map(::parseToPacket)
 
+            val dividers = listOf(Nested(Value(2)), Nested(Value(6)))
+            (packets + dividers).asSequence()
+                .sorted()
+                .withIndex()
+                .filter { (_, packet) -> packet in dividers }
+                .map { (index, _) -> index + 1 }
+                .reduce(Int::times)
         }
         part2 test 1 expect 140
     }
