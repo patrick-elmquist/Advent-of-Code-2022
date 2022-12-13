@@ -1,19 +1,36 @@
-
 import day.day
 import util.sliceByBlank
 
 // answer #1: 5717
 // answer #2: 25935
 
-private fun parse(line: String): Token {
-//                line.log("parsing...")
-    val trimmed = line.removeSurrounding("[", "]")
-    // empty
-    if (trimmed.isEmpty()) return TokenList(emptyList())
-    // value
-    trimmed.toIntOrNull()?.let { return Raw(it) }
-    // list
+fun main() {
+    day(n = 13) {
+        part1(expected = 5717) { input ->
+            input.lines.sliceByBlank()
+                .map { it.map(::parse) }
+                .mapIndexed { index, (left, right) ->
+                    if (left < right) index + 1 else 0
+                }.sum()
+        }
+        part1 test 1 expect 13
 
+        part2(expected = 25935) { input ->
+            val packets = input.lines.filter { it.isNotBlank() }.map(::parse)
+            val dividerTwo = TokenList(Raw(2))
+            val dividerSix = TokenList(Raw(6))
+            val sorted = (packets + dividerTwo + dividerSix).sorted()
+            (sorted.indexOf(dividerTwo) + 1) * (sorted.indexOf(dividerSix) + 1)
+
+        }
+        part2 test 1 expect 140
+    }
+}
+
+private fun parse(line: String): Token {
+    val trimmed = line.removeSurrounding("[", "]")
+    if (trimmed.isEmpty()) return TokenList(emptyList())
+    trimmed.toIntOrNull()?.let { return Raw(it) }
     val tokens = mutableListOf<Token>()
     var remaining = trimmed
     while (remaining.isNotEmpty()) {
@@ -40,11 +57,9 @@ private fun parse(line: String): Token {
                         }
                     }
                 }
-//                            index.log("remaining:$remaining index:")
-                val substring = remaining.substring(0, index + 1)//.log("substring")
+                val substring = remaining.substring(0, index + 1)
                 tokens.add(parse(substring))
-                remaining.drop(substring.length) // change
-                // sub string until closing
+                remaining.drop(substring.length)
             }
 
             else -> {
@@ -57,67 +72,34 @@ private fun parse(line: String): Token {
     return TokenList(tokens)
 }
 
-fun main() {
-    day(n = 13) {
-        part1(expected = 5717) { input ->
-            val pairs = input.lines.sliceByBlank()
-
-            pairs.mapIndexed { index, (left, right) ->
-                if (compare(parse(left), parse(right)) < 0) index + 1 else 0
-            }.sum()
-        }
-        part1 test 1 expect 13
-
-        part2(expected = 25935) { input ->
-            val filtered = input.lines.filter { it.isNotBlank() }
-            val withDividers = filtered + listOf("[[2]]") + listOf("[[6]]")
-            val sorted = withDividers
-                .map { parse(it) }
-                .sortedWith { l, r ->
-                    compare(l, r)
-                }
-            val two = sorted.indexOfFirst {
-                it is TokenList && it.content.singleOrNull() == Raw(2)
-            } + 1
-            val six = sorted.indexOfFirst {
-                it is TokenList && it.content.singleOrNull() == Raw(6)
-            } + 1
-            two * six
-
-        }
-        part2 test 1 expect 140
-    }
-}
-
-private fun compare(left: Token, right: Token): Int {
-    return when {
-        left is Raw && right is Raw -> {
-            left.value - right.value
-        }
-
-        left is TokenList && right is TokenList -> {
-            left.content.zip(right.content).forEach { (l, r) ->
-                val compare = compare(l, r)
-                if (compare != 0) return compare
+private sealed class Token : Comparable<Token> {
+    override fun compareTo(other: Token): Int =
+        when {
+            this is Raw && other is Raw -> {
+                value - other.value
             }
-            left.content.size - right.content.size
-        }
 
-        left is Raw && right is TokenList -> {
-            compare(TokenList(left), right)
-        }
+            this is TokenList && other is TokenList -> {
+                content.zip(other.content).forEach { (l, r) ->
+                    val compare = l.compareTo(r)
+                    if (compare != 0) return compare
+                }
+                content.size - other.content.size
+            }
 
-        left is TokenList && right is Raw -> {
-            compare(left, TokenList(right))
-        }
+            this is Raw && other is TokenList -> {
+                TokenList(this).compareTo(other)
+            }
 
-        else -> {
-            error("left:$left right:$right")
+            this is TokenList && other is Raw -> {
+                compareTo(TokenList(other))
+            }
+
+            else -> {
+                error("left:$this right:$other")
+            }
         }
-    }
 }
-
-private sealed class Token
 
 private data class Raw(val value: Int) : Token()
 private data class TokenList(val content: List<Token>) : Token() {
