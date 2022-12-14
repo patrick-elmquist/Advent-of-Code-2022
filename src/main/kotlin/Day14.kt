@@ -1,5 +1,4 @@
 
-import common.log
 import day.day
 import util.Point
 import kotlin.collections.component1
@@ -19,9 +18,46 @@ fun main() {
 
         part2(expected = 20870) { input ->
             val map = input.lines.parse()
-            solve2(map.toMutableMap()).log()
+//            solve2(map.toMutableMap()).log()
+            val settled = mutableSetOf<Point>()
+            bfs(
+                Point(500, 0),
+                settled,
+                map.keys
+            )
+            settled.size
         }
         part2 test 1 expect 93
+    }
+}
+
+private fun bfs(
+    point: Point,
+    settled: MutableSet<Point>,
+    rocks: Set<Point>
+) {
+    val queue = ArrayDeque<Point>()
+    val added = mutableSetOf<Point>()
+    queue.add(point)
+    val maxY = rocks.maxOf { it.y } + 2
+    var loops = 0
+    while (queue.isNotEmpty()) {
+        val p = queue.removeFirst()
+        val next = buildList {
+            with(p) {
+                add(copy(y = y + 1))
+                add(copy(x = x - 1, y = y + 1))
+                add(copy(x = x + 1, y = y + 1))
+            }
+        }
+
+        settled += p
+        val elements = next.filter { it !in settled && it !in rocks && it.y < maxY && it !in added }
+        queue.addAll(elements)
+        added += elements
+//        queue.log()
+        loops++
+//        if (loops == 3) TODO()
     }
 }
 
@@ -41,11 +77,7 @@ private fun solve2(map: MutableMap<Point, Tile>): Int {
     var sand = start
     val maxY = map.maxOf { it.key.y }
     val floor = maxY + 2
-    while (true) {
-        if (map[start] == Tile.Settled) {
-            return map.count { (_, tile) -> tile == Tile.Settled }
-        }
-
+    while (map[start] != Tile.Settled) {
         val below2 = map.findBelow(sand)
         val below = below2
             ?: if (map[start] == Tile.Settled) {
@@ -54,23 +86,22 @@ private fun solve2(map: MutableMap<Point, Tile>): Int {
                 Point(x = sand.x, y = floor)
             }
 
-        sand = below.copy(y = below.y - 1)
-
-        val left = sand.copy(x = sand.x - 1, y = sand.y + 1)
+        val left = below.copy(x = sand.x - 1)
         if (left !in map && left.y < floor) {
             sand = left
             continue
         }
 
-        val right = sand.copy(x = sand.x + 1, y = sand.y + 1)
+        val right = below.copy(x = sand.x + 1)
         if (right !in map && right.y < floor) {
             sand = right
             continue
         }
 
-        map[sand] = Tile.Settled
+        map[below.copy(y = below.y - 1)] = Tile.Settled
         sand = start
     }
+    return map.count { (_, tile) -> tile == Tile.Settled }
 }
 
 private fun solve(map: MutableMap<Point, Tile>): Int {
@@ -158,6 +189,7 @@ private fun Map<Point, Tile>.print(sleep: Boolean = false) {
                         '.'
                     }
                 }
+
                 Tile.Rock -> '#'
                 Tile.Settled -> 'O'
                 Tile.Sand -> '@'
