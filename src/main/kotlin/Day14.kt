@@ -75,9 +75,15 @@ private fun List<String>.parse(): Map<Point, Tile> {
 private fun solve(map: MutableMap<Point, Tile>): Int {
     val start = Point(500, 0)
     var sand = start
+    val maxY = map.keys.maxOf { it.y }
     while (true) {
-        val below = map.findBelow(sand) ?: return map.count { (_, tile) -> tile == Tile.Settled }
-        sand = below.copy(y = below.y - 1)
+        if (sand.y >= maxY) return map.count { (_, tile) -> tile == Tile.Settled }
+
+        val bottom = sand.copy(x = sand.x, y = sand.y + 1)
+        if (bottom !in map) {
+            sand = bottom
+            continue
+        }
 
         val left = sand.copy(x = sand.x - 1, y = sand.y + 1)
         if (left !in map) {
@@ -95,12 +101,6 @@ private fun solve(map: MutableMap<Point, Tile>): Int {
         sand = start
     }
 }
-
-private fun Map<Point, Tile>.findBelow(point: Point): Point? =
-    filterKeys { it.x == point.x }
-        .filterKeys { it.y > point.y }
-        .minByOrNull { it.key.y }
-        ?.key
 
 private enum class Tile { Rock, Settled }
 
