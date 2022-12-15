@@ -40,6 +40,9 @@ class Sheet(private val day: Int) {
 
     val part2 get() = TestBuilder(PartId.Two)
 
+    var ignorePart1 = false
+    var ignorePart2 = false
+
     fun part1(expected: Any? = null, block: (Input) -> Any?) =
         addPart(PartId.One, expected, block)
 
@@ -65,6 +68,8 @@ class Sheet(private val day: Int) {
 
     private fun addPart(n: PartId, expected: Any?, block: (Input) -> Any?) {
         check(_parts.none { it.partId == n })
+        if (ignorePart1 && n == PartId.One) return
+        if (ignorePart2 && n == PartId.Two) return
         _parts += Part(n, block, expected)
     }
 

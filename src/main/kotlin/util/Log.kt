@@ -1,6 +1,6 @@
 @file:Suppress("NOTHING_TO_INLINE", "unused")
 
-package common
+package util
 
 /**
  * Abuse the not operator fun for quick logging
@@ -9,6 +9,14 @@ package common
  */
 operator fun String.not() = println(this)
 
-inline fun <T> T.log(): T = this.also { println(it) }
+var loggingEnabled = true
 
-inline fun <T> T.log(msg: String): T = this.also { println("$msg $it") }
+inline fun <T> T.log(): T {
+    if (!loggingEnabled) return this
+    return this.also { println(it) }
+}
+
+inline fun <T> T.log(msg: String): T {
+    if (!loggingEnabled) return this
+    return this.also { println("$msg $it") }
+}
