@@ -1,4 +1,3 @@
-
 import day.Input
 import day.day
 import util.Point
@@ -12,18 +11,14 @@ import kotlin.math.min
 fun main() {
     day(n = 15) {
         part1(expected = 4879972) { input ->
-            val (lineToLookFor, _, sensors) = input.parseSensors()
-            val centersOnLine = sensors.filter { it.position.y == lineToLookFor }.map { it.position.x }.distinct().size
-            val pointsOnLine = sensors.filter { it.beacon.y == lineToLookFor }.map { it.beacon.x }.distinct().size
-            val mapRow = ArrayDeque<IntRange>()
-            sensors
-                .mapNotNull { it.getSlice(y = lineToLookFor) }
-                .forEach { range ->
-                    val adjusted = range.first..range.last
-                    mergeRanges(adjusted, mapRow)
+            val (y, _, sensors) = input.parseSensors()
+            val sensorsOnY = sensors.filter { it.position.y == y }.map { it.position.x }.distinct().size
+            val beaconsOnY = sensors.filter { it.beacon.y == y }.map { it.beacon.x }.distinct().size
+            sensors.mapNotNull { it.getSlice(y = y) }
+                .fold(ArrayDeque<IntRange>()) { row, range ->
+                    row.addOrMerge(range)
                 }
-
-            mapRow.sumOf { it.last - it.first + 1 } - centersOnLine - pointsOnLine
+                .sumOf { it.last - it.first + 1 } - sensorsOnY - beaconsOnY
         }
         part1 test 1 expect 26
 
@@ -35,23 +30,20 @@ fun main() {
 
             val array = Array(max + 1) { ArrayDeque<IntRange>() }
             for (y in minMaxRange) {
-                sensors.forEach {
-                    it.getSlice(y)?.let { slice ->
-                        val adjusted = slice.first.coerceAtLeast(min)..slice.last.coerceAtMost(max)
-                        mergeRanges(adjusted, array[y])
+                array[y] = sensors.mapNotNull { it.getSlice(y) }
+                    .fold(array[y]) { row, range ->
+                        row.addOrMerge(range.first.coerceAtLeast(min)..range.last.coerceAtMost(max))
                     }
-                }
             }
 
             val index = array.indexOfFirst { ranges -> ranges.sumOf { it.last - it.first + 1 } != max + 1 }
             array[index].let { ranges ->
                 val sortedBy = ranges.sortedBy { it.first }
-                val x = if (ranges.size == 2) {
-                    sortedBy.first().last + 1
-                } else if (sortedBy.first().first != min) {
-                    min
-                } else {
-                    max
+                val firstRange = sortedBy.first()
+                val x = when {
+                    ranges.size == 2 -> firstRange.last + 1
+                    firstRange.first != min -> min
+                    else -> max
                 }
                 x.toLong() * 4_000_000L + index.toLong()
             }
@@ -60,50 +52,45 @@ fun main() {
     }
 }
 
-private data class ParsedData(val line: Int, val max: Int, val sensors: List<Sensor>)
+private data class ParsedData(val line: Int, val max: Int, val sensors: List<SensorWithBeacon>)
 
 private fun Input.parseSensors(): ParsedData {
+    val regex = """Sensor at x=(-?\d+), y=(-?\d+): closest beacon is at x=(-?\d+), y=(-?\d+)""".toRegex()
     val line = lines.first().removePrefix("line=").toInt()
     val max = lines.drop(1).first().removePrefix("max=").toInt()
-    val regex = """Sensor at x=(-?\d+), y=(-?\d+): closest beacon is at x=(-?\d+), y=(-?\d+)""".toRegex()
     val sensors = lines.drop(2).mapNotNull {
-        regex.matchEntire(it)?.destructured?.let { (x1, y1, x2, y2) ->
-            Sensor(Point(x1, y1), Point(x2, y2))
-        }
+        regex.matchEntire(it)?.destructured?.let { (x1, y1, x2, y2) -> SensorWithBeacon(Point(x1, y1), Point(x2, y2)) }
     }
     return ParsedData(line, max, sensors)
 }
 
-private fun mergeRanges(rangeToAdd: IntRange, row: ArrayDeque<IntRange>): ArrayDeque<IntRange> {
-    var range = rangeToAdd
-    val iterator = row.iterator()
-    iterator.forEach { x ->
+private fun ArrayDeque<IntRange>.addOrMerge(range: IntRange): ArrayDeque<IntRange> {
+    var merged = range
+    val iterator = iterator()
+    iterator.forEach { existing ->
         when {
-            range.first >= x.first && range.last <= x.last -> return row
-            range.first > x.last || range.last < x.first -> Unit
+            merged.first >= existing.first && merged.last <= existing.last -> return this
+            merged.first > existing.last || merged.last < existing.first -> Unit
             else -> {
                 iterator.remove()
-                range = min(x.first, range.first)..max(x.last, range.last)
+                merged = min(existing.first, merged.first)..max(existing.last, merged.last)
             }
         }
     }
-    row += range
-    return row
+    add(merged)
+    return this
 }
 
-private data class Sensor(val position: Point, val beacon: Point) {
-    val radius = position.manhattanDistance(beacon)
-    fun getSlice(y: Int): IntRange? {
-        return if (y < position.y - radius || y > position.y + radius) {
-            null
-        } else {
-            val diff = abs(position.y - y)
-            val start = (position.x - radius + diff)
-            val end = (position.x + radius - diff)
+private data class SensorWithBeacon(val position: Point, val beacon: Point) {
+    private val distance = abs(position.x - beacon.x) + abs(position.y - beacon.y)
+    private val yRange = position.y - distance..position.y + distance
+    fun getSlice(y: Int) =
+        if (y in yRange) {
+            val offset = abs(position.y - y)
+            val start = (position.x - distance + offset)
+            val end = (position.x + distance - offset)
             start..end
+        } else {
+            null
         }
-    }
 }
-
-private fun Point.manhattanDistance(other: Point) =
-    abs(x - other.x) + abs(y - other.y)
