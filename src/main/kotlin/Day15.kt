@@ -1,8 +1,7 @@
 
+import day.Input
 import day.day
 import util.Point
-import util.log
-import util.loggingEnabled
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -12,131 +11,96 @@ import kotlin.math.min
 
 fun main() {
     day(n = 15) {
-//        ignorePart1 = true
-        val pattern = """Sensor at x=(-?\d+), y=(-?\d+): closest beacon is at x=(-?\d+), y=(-?\d+)""".toRegex()
         part1(expected = 4879972) { input ->
-            val lineToLookFor = 2000000
-            val circles = input.lines.mapNotNull {
-                pattern.matchEntire(it)?.destructured?.let { (x1, y1, x2, y2) ->
-                    Circle(Point(x1, y1), Point(x2, y2))
+            val (lineToLookFor, _, sensors) = input.parseSensors()
+            val centersOnLine = sensors.filter { it.position.y == lineToLookFor }.map { it.position.x }.distinct().size
+            val pointsOnLine = sensors.filter { it.beacon.y == lineToLookFor }.map { it.beacon.x }.distinct().size
+            val mapRow = ArrayDeque<IntRange>()
+            sensors
+                .mapNotNull { it.getSlice(y = lineToLookFor) }
+                .forEach { range ->
+                    val adjusted = range.first..range.last
+                    mergeRanges(adjusted, mapRow)
                 }
-            }
-            val centersOnLine = circles.filter { it.center.y == lineToLookFor }.map { it.center.x }
-            val pointsOnLine = circles.filter { it.point.y == lineToLookFor }.map { it.point.x }
-            val toLookAt = circles.filter { lineToLookFor in it.yrange }
-            val setOfX = mutableSetOf<Int>()
-            toLookAt.forEach {
-                val dist = abs(it.center.y - lineToLookFor)
-                val start = it.radius - dist
-                setOfX.addAll(it.center.x - start..it.center.x + start)
-            }
-            setOfX.filter {
-                it !in centersOnLine && it !in pointsOnLine
-            }.size
+
+            mapRow.sumOf { it.last - it.first + 1 } - centersOnLine - pointsOnLine
         }
-//        part1 test 1 expect 26
+        part1 test 1 expect 26
 
-        part2 { input ->
-            val circles = input.lines.mapNotNull {
-                pattern.matchEntire(it)?.destructured?.let { (x1, y1, x2, y2) ->
-                    Circle(Point(x1, y1), Point(x2, y2))
-                }
-            }
-
-//            circles.first().widthPerRow().sortedBy { it.first }.forEach { (y, range) ->
-//                for (i in (-5..9)) {
-//                    if (i in range) {
-//                        print('#')
-//                    } else {
-//                        print(' ')
-//                    }
-//                }
-//                println()
-//            }
-//            circles.first().widthPerRow().toList().log()
+        part2(expected = 12525726647448L) { input ->
+            val (_, max, sensors) = input.parseSensors()
 
             val min = 0
-            val max = 4_000_000
+            val minMaxRange = min..max
 
-            loggingEnabled = false
-            val map = mutableMapOf<Int, MutableList<IntRange>>()
-            circles.forEach { circle ->
-                circle.widthPerRow().forEach loop@{ (y, range) ->
-                    if (y < min || y > max) return@loop
-                    val row = map.get(y)
-                    val adjusted = range.first.coerceAtLeast(min)..range.last.coerceAtMost(max)
-                    if (row == null) {
-                        map[y] = mutableListOf(adjusted)
-                    } else {
-                        map[y] = mergeRanges(adjusted, row, min, max).log("from merged")
+            val array = Array(max + 1) { ArrayDeque<IntRange>() }
+            for (y in minMaxRange) {
+                sensors.forEach {
+                    it.getSlice(y)?.let { slice ->
+                        val adjusted = slice.first.coerceAtLeast(min)..slice.last.coerceAtMost(max)
+                        mergeRanges(adjusted, array[y])
                     }
                 }
             }
-            map.entries.onEach { (y, ranges) ->
-//                ranges.log("$y")
-            }.first { (y, ranges) ->
-                ranges.sumOf { it.last - it.first + 1 } != max + 1
-            }
-                .let { (y, ranges) ->
-                    val sortedBy = ranges.sortedBy { it.first }
-                    val x = if (ranges.size == 2) {
-                        sortedBy.first().last + 1
-                    } else if (sortedBy.first().first != min) {
-                        min
-                    } else {
-                        max
-                    }
-                    x.toLong() * 4_000_000L + y.toLong()
+
+            val index = array.indexOfFirst { ranges -> ranges.sumOf { it.last - it.first + 1 } != max + 1 }
+            array[index].let { ranges ->
+                val sortedBy = ranges.sortedBy { it.first }
+                val x = if (ranges.size == 2) {
+                    sortedBy.first().last + 1
+                } else if (sortedBy.first().first != min) {
+                    min
+                } else {
+                    max
                 }
+                x.toLong() * 4_000_000L + index.toLong()
+            }
         }
-//        part2 test 1 expect 56000011L
+        part2 test 1 expect 56000011L
     }
 }
 
-fun mergeRanges(rin: IntRange, row: MutableList<IntRange>, min: Int, max: Int): MutableList<IntRange> {
-    val out = mutableListOf<IntRange>()
-    var r = rin.log("rin")
-    row.forEach { x ->
+private data class ParsedData(val line: Int, val max: Int, val sensors: List<Sensor>)
+
+private fun Input.parseSensors(): ParsedData {
+    val line = lines.first().removePrefix("line=").toInt()
+    val max = lines.drop(1).first().removePrefix("max=").toInt()
+    val regex = """Sensor at x=(-?\d+), y=(-?\d+): closest beacon is at x=(-?\d+), y=(-?\d+)""".toRegex()
+    val sensors = lines.drop(2).mapNotNull {
+        regex.matchEntire(it)?.destructured?.let { (x1, y1, x2, y2) ->
+            Sensor(Point(x1, y1), Point(x2, y2))
+        }
+    }
+    return ParsedData(line, max, sensors)
+}
+
+private fun mergeRanges(rangeToAdd: IntRange, row: ArrayDeque<IntRange>): ArrayDeque<IntRange> {
+    var range = rangeToAdd
+    val iterator = row.iterator()
+    iterator.forEach { x ->
         when {
-            r.first >= x.first && r.last <= x.last -> {
-                // r is fully within, quick return
-                return row.log("quick")
-            }
-
-            r.first > x.last || r.last < x.first -> {
-                // r is fully outside
-                out.add(x)
-                x.log("adding x")
-            }
-//            r.last < min || r.first < max -> {
-//                return row
-//            }
+            range.first >= x.first && range.last <= x.last -> return row
+            range.first > x.last || range.last < x.first -> Unit
             else -> {
-                val start = min(x.first, r.first).coerceAtLeast(min)
-                val end = max(x.last, r.last).coerceAtMost(max)
-                r = start..end
-                r.log("new r")
+                iterator.remove()
+                range = min(x.first, range.first)..max(x.last, range.last)
             }
         }
     }
-    out += r
-    return out
+    row += range
+    return row
 }
 
-private data class Circle(val center: Point, val point: Point) {
-    val radius = center.manhattanDistance(point)
-    val xrange = center.x - radius..center.x + radius
-    val yrange = center.y - radius..center.y + radius
-
-    fun widthPerRow(): Sequence<Pair<Int, IntRange>> {
-        return sequence {
-            yield(center.y to center.x - radius..center.x + radius)
-            for (y in (1..radius)) {
-                val start = (center.x - radius + y)
-                val end = (center.x + radius - y)
-                yield(center.y + y to start..end)
-                yield(center.y - y to start..end)
-            }
+private data class Sensor(val position: Point, val beacon: Point) {
+    val radius = position.manhattanDistance(beacon)
+    fun getSlice(y: Int): IntRange? {
+        return if (y < position.y - radius || y > position.y + radius) {
+            null
+        } else {
+            val diff = abs(position.y - y)
+            val start = (position.x - radius + diff)
+            val end = (position.x + radius - diff)
+            start..end
         }
     }
 }
