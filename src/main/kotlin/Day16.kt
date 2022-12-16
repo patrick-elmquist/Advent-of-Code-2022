@@ -1,4 +1,3 @@
-
 import day.Input
 import day.day
 import java.util.*
@@ -31,58 +30,51 @@ fun main() {
 
             val workDivision = allPossibleWorkDivision(closedValeWithValidRate)
             val distances = findAllDistances(nameToValveMap)
-            val cache = mutableMapOf<Int, Int>()
-            workDivision.maxOf { (me, elephant) ->
-                val meKey = me.hashCode()
-                val my = cache[meKey] ?: solve(
+            val localCache = mutableMapOf<Int, Int>()
+            workDivision.maxOf { (myWork, elephantsWork) ->
+                val meKey = myWork.hashCode()
+                val myPressure = localCache[meKey] ?: solve(
                     valve = start,
-                    closedValves = me,
+                    closedValves = myWork,
                     timeRemaining = 26,
                     distances = distances
-                ).also { cache[meKey] = it }
+                ).also { localCache[meKey] = it }
 
-                val elephantKey = elephant.hashCode()
-                val elephants = cache[elephantKey] ?: solve(
+                val elephantKey = elephantsWork.hashCode()
+                val elephantsPressure = localCache[elephantKey] ?: solve(
                     valve = start,
-                    closedValves = elephant,
+                    closedValves = elephantsWork,
                     timeRemaining = 26,
                     distances = distances
-                ).also { cache[elephantKey] = it }
+                ).also { localCache[elephantKey] = it }
 
-                my + elephants
+                myPressure + elephantsPressure
             }
         }
         part2 test 1 expect 1707
     }
 }
 
-private fun Input.parseNameValveMap(): Map<String, Valve> {
-    val parsed = lines.map {
+private fun Input.parseNameValveMap(): Map<String, Valve> =
+    lines.map {
         val split = it.split(" ")
         val valve = split[1]
         val rate = split[4].removePrefix("rate=").removeSuffix(";").toInt()
         val connections = split.subList(9, split.size).map { it.removeSuffix(",") }
         Valve(valve, rate, connections)
-    }
-    return parsed.associateBy { it.name }
-}
+    }.associateBy { it.name }
 
-private fun findAllDistances(allValves: Map<String, Valve>): Map<Int, Int> {
-    val distances = mutableMapOf<Int, Int>()
-    allValves.values.forEach { start ->
-        allValves.values.forEach { end ->
-            val key = cacheKey(start, end)
-            if (distances[key] == null) {
-                distances[key] = shortestPath(allValves, start, end)
+private fun findAllDistances(allValves: Map<String, Valve>): Map<Int, Int> =
+    buildMap {
+        allValves.values.forEach { start ->
+            allValves.values.forEach { end ->
+                putIfAbsent(cacheKey(start, end), shortestPath(allValves, start, end))
             }
         }
     }
-    return distances
-}
 
 private fun shortestPath(allValves: Map<String, Valve>, start: Valve, end: Valve): Int {
-    val distances = allValves.values
-        .associate { it.name to if (it == start) 0 else Int.MAX_VALUE }
+    val distances = allValves.mapValues {  (_, valve) -> if (valve == start) 0 else Int.MAX_VALUE }
         .toMutableMap()
 
     val comparator: (String, String) -> Int = { a, b ->
@@ -91,12 +83,13 @@ private fun shortestPath(allValves: Map<String, Valve>, start: Valve, end: Valve
     val queue = PriorityQueue(comparator).apply { add(start.name) }
 
     while (queue.isNotEmpty()) {
-        val current = allValves.getValue(queue.poll())
+        val valve = allValves.getValue(queue.poll())
 
-        if (current == end) break
+        if (valve == end) break
 
-        current.connections.forEach { valve ->
-            val newDistance = distances.getValue(current.name) + 1
+        val currentDistance = distances.getValue(valve.name)
+        valve.connections.forEach { valve ->
+            val newDistance = currentDistance + 1
             if (newDistance < distances.getValue(valve)) {
                 distances[valve] = newDistance
                 // wasteful way of refreshing the queue
@@ -114,7 +107,7 @@ private fun allPossibleWorkDivision(l: List<Valve>): List<List<List<Valve>>> {
     val flags = BooleanArray(l.size)
     var i = 0
 
-    fun inv(i: Int): Boolean {
+    fun invFlag(i: Int): Boolean {
         flags[i] = !flags[i]
         return flags[i]
     }
@@ -128,7 +121,7 @@ private fun allPossibleWorkDivision(l: List<Valve>): List<List<List<Valve>>> {
         list.add(listOf(a, b))
 
         i = 0
-        while (i < l.size && !inv(i)) i++
+        while (i < l.size && !invFlag(i)) i++
     }
     return list
 }
@@ -143,23 +136,23 @@ private fun solve(
 
     var timeAfter = timeRemaining
     var totalPressure = 0
-    if (valve.rate > 0) {
-        totalPressure = (timeAfter - 1) * valve.rate
+    if (valve.rate > 0) { // only needed for AA
         timeAfter -= 1
+        totalPressure = timeAfter * valve.rate
     }
 
-    if (closedValves.none { distances.getValue(cacheKey(it, valve)) + 1 <= timeAfter }) {
+    if (closedValves.none { distances.getValue(cacheKey(it, valve)) + 1 < timeAfter }) {
         return totalPressure
     }
 
     return totalPressure + closedValves
-        .filter { distances.getValue(cacheKey(it, valve)) + 1 <= timeAfter }
+        .filter { distances.getValue(cacheKey(it, valve)) + 1 < timeAfter }
         .maxOf {
             solve(
                 valve = it,
                 closedValves = closedValves - it,
                 timeRemaining = timeAfter - distances.getValue(cacheKey(it, valve)),
-                distances
+                distances = distances
             )
         }
 }
