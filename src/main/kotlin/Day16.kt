@@ -1,10 +1,10 @@
+
 import day.Input
 import day.day
-import util.log
 import java.util.*
 
 // answer #1: 1701
-// answer #2: not 2654, too high
+// answer #2: 2455
 
 fun main() {
     day(n = 16) {
@@ -24,11 +24,11 @@ fun main() {
                 }
             }
 
-            map.solve(current, (map.values.toList() - current).filter { it.rate > 0 }, 30, cache).log()
+            map.solve(current, (map.values.toList() - current).filter { it.rate > 0 }, 30, cache)
         }
         part1 test 1 expect 1651
 
-        part2 { input ->
+        part2(expected = 2455) { input ->
             val parsed = input.parse()
             val map = parsed.associateBy { it.name }
             val current = map.getValue("AA")
@@ -44,18 +44,9 @@ fun main() {
                 }
             }
 
-//            val me = Player("me", current, 26)
-//            val elephant = Player("elephant", current, 26)
-
             val listOfLists = create((map.values.toList() - current).filter { it.rate > 0 })
-            var cache2 = mutableMapOf<Int, Int>()
+            val cache2 = mutableMapOf<Int, Int>()
             listOfLists.maxOf { (me, elephant) ->
-//                "cache: $cache2".log()
-//                "me: $me".log()
-//                "elephant: $elephant".log()
-//                "".log()
-//                Thread.sleep(250L)
-
                 val meKey = me.hashCode()
                 val my = cache2[meKey] ?: map.solve(
                     current,
@@ -83,13 +74,15 @@ private fun create(l: List<Vertex>): List<Pair<List<Vertex>, List<Vertex>>> {
     val list = mutableListOf<Pair<List<Vertex>, List<Vertex>>>()
     val flags = BooleanArray(l.size)
     var i = 0
+
     fun inv(i: Int): Boolean {
         flags[i] = !flags[i]
         return flags[i]
     }
+
     while (i != l.size) {
-        val a: ArrayList<Vertex> = ArrayList()
-        val b: ArrayList<Vertex> = ArrayList()
+        val a = mutableListOf<Vertex>()
+        val b = mutableListOf<Vertex>()
         for (j in l.indices) if (flags[j]) a.add(l[j]) else b.add(l[j])
         list.add(a to b)
         i = 0
@@ -107,28 +100,26 @@ private fun Map<String, Vertex>.solve(
     remaining: Int,
     cache: MutableMap<String, Int>
 ): Int {
-    if (remaining <= 0) {
-        return 0
-    }
+    if (remaining <= 0) return 0
 
-    var remaining = remaining
+    var remainingTime = remaining
     var expectedPressure = 0
     if (current.rate > 0) {
-        expectedPressure = (remaining - 1) * current.rate
-        remaining -= 1
+        expectedPressure = (remainingTime - 1) * current.rate
+        remainingTime -= 1
     }
 
-    if (left.none { cache.getValue(key(it, current)) + 1 <= remaining }) {
+    if (left.none { cache.getValue(key(it, current)) + 1 <= remainingTime }) {
         return expectedPressure
     }
 
     return expectedPressure + left
-        .filter { cache.getValue(key(it, current)) + 1 <= remaining }
+        .filter { cache.getValue(key(it, current)) + 1 <= remainingTime }
         .maxOf {
             solve(
                 current = it,
                 left = left - it,
-                remaining = remaining - cache.getValue(key(it, current)),
+                remaining = remainingTime - cache.getValue(key(it, current)),
                 cache
             ).also { "back in ${current.name}" }
         }
