@@ -9,59 +9,45 @@ import java.util.*
 fun main() {
     day(n = 16) {
         part1(expected = 1701) { input ->
-            val parsed = input.parse()
-            val map = parsed.associateBy { it.name }
-            val current = map.getValue("AA")
-
-            val cache = parsed.flatMap { a -> a.edge.map { b -> key(a.name, b) to 1 } }
-                .distinct()
-                .toMap()
-                .toMutableMap()
-
-            map.values.forEach { a ->
-                map.values.forEach { b ->
-                    map.shortestPath(a, b, cache)
-                }
-            }
-
-            map.solve(current, (map.values.toList() - current).filter { it.rate > 0 }, 30, cache)
+            val nameToValveMap = input.parseNameValveMap()
+            val start = nameToValveMap.getValue("AA")
+            val closedValeWithValidRate = (nameToValveMap.values.toList() - start)
+                .filter { it.rate > 0 }
+            solve(
+                valve = start,
+                closedValves = closedValeWithValidRate,
+                timeRemaining = 30,
+                distances = findAllDistances(nameToValveMap)
+            )
         }
         part1 test 1 expect 1651
 
         part2(expected = 2455) { input ->
-            val parsed = input.parse()
-            val map = parsed.associateBy { it.name }
-            val current = map.getValue("AA")
+            val nameToValveMap = input.parseNameValveMap()
+            val start = nameToValveMap.getValue("AA")
 
-            val cache = parsed.flatMap { a -> a.edge.map { b -> key(a.name, b) to 1 } }
-                .distinct()
-                .toMap()
-                .toMutableMap()
+            val closedValeWithValidRate = (nameToValveMap.values.toList() - start)
+                .filter { it.rate > 0 }
 
-            map.values.forEach { a ->
-                map.values.forEach { b ->
-                    map.shortestPath(a, b, cache)
-                }
-            }
-
-            val listOfLists = create((map.values.toList() - current).filter { it.rate > 0 })
-            val cache2 = mutableMapOf<Int, Int>()
-            listOfLists.maxOf { (me, elephant) ->
+            val workDivision = allPossibleWorkDivision(closedValeWithValidRate)
+            val distances = findAllDistances(nameToValveMap)
+            val cache = mutableMapOf<Int, Int>()
+            workDivision.maxOf { (me, elephant) ->
                 val meKey = me.hashCode()
-                val my = cache2[meKey] ?: map.solve(
-                    current,
-                    me,
-                    26,
-                    cache
-                ).also { cache2[meKey] = it }
+                val my = cache[meKey] ?: solve(
+                    valve = start,
+                    closedValves = me,
+                    timeRemaining = 26,
+                    distances = distances
+                ).also { cache[meKey] = it }
 
                 val elephantKey = elephant.hashCode()
-                val elephants = cache2[elephantKey] ?: map.solve(
-                    current,
-                    elephant,
-                    26,
-                    cache
-                ).also { cache2[elephantKey] = it }
+                val elephants = cache[elephantKey] ?: solve(
+                    valve = start,
+                    closedValves = elephant,
+                    timeRemaining = 26,
+                    distances = distances
+                ).also { cache[elephantKey] = it }
 
                 my + elephants
             }
@@ -70,8 +56,61 @@ fun main() {
     }
 }
 
-private fun create(l: List<Vertex>): List<Pair<List<Vertex>, List<Vertex>>> {
-    val list = mutableListOf<Pair<List<Vertex>, List<Vertex>>>()
+private fun Input.parseNameValveMap(): Map<String, Valve> {
+    val parsed = lines.map {
+        val split = it.split(" ")
+        val valve = split[1]
+        val rate = split[4].removePrefix("rate=").removeSuffix(";").toInt()
+        val connections = split.subList(9, split.size).map { it.removeSuffix(",") }
+        Valve(valve, rate, connections)
+    }
+    return parsed.associateBy { it.name }
+}
+
+private fun findAllDistances(allValves: Map<String, Valve>): Map<Int, Int> {
+    val distances = mutableMapOf<Int, Int>()
+    allValves.values.forEach { start ->
+        allValves.values.forEach { end ->
+            val key = cacheKey(start, end)
+            if (distances[key] == null) {
+                distances[key] = shortestPath(allValves, start, end)
+            }
+        }
+    }
+    return distances
+}
+
+private fun shortestPath(allValves: Map<String, Valve>, start: Valve, end: Valve): Int {
+    val distances = allValves.values
+        .associate { it.name to if (it == start) 0 else Int.MAX_VALUE }
+        .toMutableMap()
+
+    val comparator: (String, String) -> Int = { a, b ->
+        distances.getValue(a).compareTo(distances.getValue(b))
+    }
+    val queue = PriorityQueue(comparator).apply { add(start.name) }
+
+    while (queue.isNotEmpty()) {
+        val current = allValves.getValue(queue.poll())
+
+        if (current == end) break
+
+        current.connections.forEach { valve ->
+            val newDistance = distances.getValue(current.name) + 1
+            if (newDistance < distances.getValue(valve)) {
+                distances[valve] = newDistance
+                // wasteful way of refreshing the queue
+                queue.remove(valve)
+                queue.add(valve)
+            }
+        }
+    }
+
+    return distances.getValue(end.name)
+}
+
+private fun allPossibleWorkDivision(l: List<Valve>): List<List<List<Valve>>> {
+    val list = mutableListOf<List<List<Valve>>>()
     val flags = BooleanArray(l.size)
     var i = 0
 
@@ -81,92 +120,52 @@ private fun create(l: List<Vertex>): List<Pair<List<Vertex>, List<Vertex>>> {
     }
 
     while (i != l.size) {
-        val a = mutableListOf<Vertex>()
-        val b = mutableListOf<Vertex>()
-        for (j in l.indices) if (flags[j]) a.add(l[j]) else b.add(l[j])
-        list.add(a to b)
-        i = 0
+        val a = mutableListOf<Valve>()
+        val b = mutableListOf<Valve>()
 
-        while (i < l.size && !inv(i)) {
-            i++
-        }
+        for (j in l.indices) if (flags[j]) a.add(l[j]) else b.add(l[j])
+
+        list.add(listOf(a, b))
+
+        i = 0
+        while (i < l.size && !inv(i)) i++
     }
     return list
 }
 
-private fun Map<String, Vertex>.solve(
-    current: Vertex,
-    left: List<Vertex>,
-    remaining: Int,
-    cache: MutableMap<String, Int>
+private fun solve(
+    valve: Valve,
+    closedValves: List<Valve>,
+    timeRemaining: Int,
+    distances: Map<Int, Int>
 ): Int {
-    if (remaining <= 0) return 0
+    if (timeRemaining <= 0) return 0
 
-    var remainingTime = remaining
-    var expectedPressure = 0
-    if (current.rate > 0) {
-        expectedPressure = (remainingTime - 1) * current.rate
-        remainingTime -= 1
+    var timeAfter = timeRemaining
+    var totalPressure = 0
+    if (valve.rate > 0) {
+        totalPressure = (timeAfter - 1) * valve.rate
+        timeAfter -= 1
     }
 
-    if (left.none { cache.getValue(key(it, current)) + 1 <= remainingTime }) {
-        return expectedPressure
+    if (closedValves.none { distances.getValue(cacheKey(it, valve)) + 1 <= timeAfter }) {
+        return totalPressure
     }
 
-    return expectedPressure + left
-        .filter { cache.getValue(key(it, current)) + 1 <= remainingTime }
+    return totalPressure + closedValves
+        .filter { distances.getValue(cacheKey(it, valve)) + 1 <= timeAfter }
         .maxOf {
             solve(
-                current = it,
-                left = left - it,
-                remaining = remainingTime - cache.getValue(key(it, current)),
-                cache
-            ).also { "back in ${current.name}" }
+                valve = it,
+                closedValves = closedValves - it,
+                timeRemaining = timeAfter - distances.getValue(cacheKey(it, valve)),
+                distances
+            )
         }
 }
 
-private fun key(a: Vertex, b: Vertex): String = key(a.name, b.name)
-private fun key(a: String, b: String): String = listOf(a, b).sorted().joinToString("")
-private fun Map<String, Vertex>.shortestPath(a: Vertex, b: Vertex, cache: MutableMap<String, Int>): Int {
-    val key = key(a, b)
-    val cached = cache[key]
-    if (cached != null) return cached
+private fun cacheKey(a: Valve, b: Valve): Int = cacheKey(a.name, b.name)
 
-    val distances = mutableMapOf<String, Int>()
-    distances.putAll(values.map { if (it == a) it.name to 0 else it.name to Int.MAX_VALUE })
-    val queue = PriorityQueue<String> { a, b -> distances.getValue(a).compareTo(distances.getValue(b)) }
-    queue.add(a.name)
-    val prev = mutableListOf<String>()
-    while (queue.isNotEmpty()) {
-        val current = getValue(queue.poll())
+private fun cacheKey(a: String, b: String): Int = listOf(a, b).sorted().hashCode()
 
-        if (current == b) break
-
-        current.edge.forEach {
-            val alt = distances.getValue(current.name) + 1
-            if (alt < distances.getValue(it)) {
-                distances[it] = alt
-                prev.add(it)
-                queue.remove(it)
-                queue.add(it)
-            }
-        }
-    }
-
-    val value = distances.getValue(b.name)
-    return value.also { cache[key] = value }
-}
-
-private fun Input.parse(): List<Vertex> {
-    return lines.map {
-        val split = it.split(" ")
-        val valve = split[1]
-        val rate = split[4].removePrefix("rate=").removeSuffix(";").toInt()
-        val connections = split.subList(9, split.size).map {
-            it.removeSuffix(",")
-        }
-        Vertex(valve, rate, connections)
-    }
-}
-
-private data class Vertex(val name: String, val rate: Int, val edge: List<String>)
+private data class Valve(val name: String, val rate: Int, val connections: List<String>)
