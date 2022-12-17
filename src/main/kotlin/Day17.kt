@@ -5,8 +5,10 @@ import util.log
 import java.math.BigInteger
 import kotlin.math.abs
 
-// answer #1:
-// answer #2:
+// answer #1: 3114
+// answer #2: not 1541458733208, too high
+// not 1541294964005
+// not 1540143884869
 
 fun main() {
     day(n = 17) {
@@ -64,21 +66,23 @@ fun main() {
             val winds = input.single()
             var windIndex = 0
 
-            val remaining = BigInteger("1000000000000") - BigInteger.valueOf(23)
-            remaining.log("remaining")
-            val coveredByPattern = remaining / BigInteger.valueOf(35)
-            coveredByPattern.log("covered")
-            val left = remaining % BigInteger.valueOf(35)
-            left.log("left")
-
-            val result = BigInteger.valueOf(23) + BigInteger.valueOf(53) * coveredByPattern + BigInteger.valueOf(44)
-            result.log("result")
+//            val remaining = BigInteger("1000000000000") - BigInteger.valueOf(23)
+//            remaining.log("remaining")
+//            val coveredByPattern = remaining / BigInteger.valueOf(35)
+//            coveredByPattern.log("covered")
+//            val left = remaining % BigInteger.valueOf(35)
+//            left.log("left")
+//
+//            val result = BigInteger.valueOf(23) + BigInteger.valueOf(53) * coveredByPattern + BigInteger.valueOf(44)
+//            result.log("result")
 
             val states = mutableMapOf<String, Int>()
+            val heights = mutableListOf<Int>()
             val mass = List(7) { Point(it, 0) }.toMutableSet()
             var rock = 1
             var moveSide = true
             var indexWhenStarting = 0
+            val foundDuplicates = mutableMapOf<String, Int>()
             while (true) {
                 var blocked = false
                 if (moveSide) {
@@ -104,15 +108,26 @@ fun main() {
                 }
 
                 if (blocked) {
-                    val key = shape.name + indexWhenStarting
+                    val key = key(shape, indexWhenStarting, mass)
                     if (key in states) {
 //                        "duplicate $rock seen:${states[key]} with key:$key".log()
+//                        "found duplicate, same as ${states[key]}".log()
+                        if (key in foundDuplicates) {
+                            if (foundDuplicates.getValue(key) == 8) {
+                                break
+                            } else {
+                                foundDuplicates[key] = foundDuplicates.getValue(key) + 1
+                            }
+                        } else {
+                            foundDuplicates += key to 1
+                        }
                     } else {
                         states += key to rock
                     }
-                    val height = abs(mass.minOf { it.y.toFloat() }.toInt())
-                    "duplicate $rock seen:${states[key]} with key:$key height:$height".log()
                     mass += shape.translate(position)
+                    val height = abs(mass.minOf { it.y.toFloat() }.toInt())
+                    heights.add(height)
+//                    "adding $rock seen:${states[key]} with key:$key height:$height".log()
                     shape = shape.next()
                     position = Point(x = 2, y = mass.minOf { it.y } - 4)
                     rock++
@@ -121,70 +136,45 @@ fun main() {
                 }
             }
 
+            val key = key(shape, indexWhenStarting, mass)
+            val rockNumber = states.getValue(key).log("index")
+            val heightBeforePattern = heights.get(rockNumber - 2).log("height").toBigInteger()
+            val other = heights.last().log("other")
+            val heightPerPattern = other.toBigInteger() - heightBeforePattern // could be that it should be adjusted up or down
+//            heightPerPattern.log("height per pattern")
 
-//            23L + coveredByPattern * 53
-            abs(mass.minOf {
-                it.y.toFloat()
-            }.toInt())
+            val bigint = BigInteger("1000000000000")
+            val mid = bigint - (rockNumber - 1).toBigInteger()
+
+            val countPerPattern = heights.drop(rockNumber - 1).count().log("pattern len")
+            val coveredByPattern = mid / countPerPattern.toBigInteger()
+            val after = mid % countPerPattern.toBigInteger()
+//            after.log("after")
+
+            val t = heights.drop(rockNumber - 2)
+                .take(after.toInt() + 1).let { it.last() - it.first() }
+                .toBigInteger()
+
+            heightBeforePattern + coveredByPattern * heightPerPattern + t
         }
-        part2 test 1 expect 1514285714288L
+        part2 test 1 expect BigInteger("1514285714288")
     }
 }
 
-private fun print(floor: Set<Point>, position: Point, shape: Shape, atBottom: Boolean = false) {
-    val s = shape.translate(position)
-    val all = s + floor
-
-    val minX = all.minOf { it.x }
-    val maxX = all.maxOf { it.x }
-    val minY = all.minOf { it.y }
-    val maxY = all.maxOf { it.y }
-
-    for (y in minY..maxY) {
-        if (y != maxY) {
-            print("|")
-        } else {
-            print("+")
-        }
-        for (x in minX..maxX) {
-            val p = Point(x, y)
-            when (p) {
-                in s -> {
-                    if (atBottom) {
-                        print("#")
-                    } else {
-                        print("@")
-                    }
-                }
-
-                in floor -> {
-                    if (y == 0) {
-                        print("-")
-                    } else {
-                        print("#")
-                    }
-                }
-
-                else -> {
-                    if (y == 0) {
-                        print("-")
-                    } else {
-                        print(".")
-                    }
-                }
+private fun key(shape: Shape, index: Int, mass: Set<Point>): String {
+    val minY = mass.minOf { it.y }
+    val s = buildString {
+        for (x in (0 until 7)) {
+            val p = mass.find { it.x == x && it.y == minY }
+            if (p == null) {
+                append(" ")
+            } else {
+                append("#")
             }
         }
-        if (y != maxY) {
-            print("|")
-        } else {
-            print("+")
-        }
-        println()
     }
-    println()
-    Thread.sleep(300L)
+    return shape.name + index + s
 }
-
 private enum class Shape(val points: List<Point>) {
     Minus(listOf(Point(0, 0), Point(1, 0), Point(2, 0), Point(3, 0))),
     Plus(listOf(Point(1, 0), Point(0, -1), Point(1, -1), Point(2, -1), Point(1, -2))),
