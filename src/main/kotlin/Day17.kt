@@ -1,45 +1,38 @@
+import day.Input
 import day.day
 import day.single
 import util.Point
-import util.log
-import java.math.BigInteger
 import kotlin.math.abs
 
 // answer #1: 3114
 // answer #2: 1540804597682
-// not 1541294964005
-// not 1540143884869
-// not 1539481268010
 
 fun main() {
     day(n = 17) {
         part1(expected = 3114) { input ->
             var shape = Shape.Minus
-            val n = 2022
             var position = Point(2, -4)
-            val winds = input.single()
+            val winds = input.parseGasJets()
             var windIndex = 0
             val mass = List(7) { Point(it, 0) }.toMutableSet()
             var rock = 1
             var moveSide = true
-            while (rock <= n) {
+            while (rock < 2023) {
                 var blocked = false
                 if (moveSide) {
-                    val wind = when (winds[windIndex]) {
-                        '<' -> -1
-                        else -> 1
-                    }
+                    val wind = winds[windIndex % winds.size]
 
                     val newX = (position.x + wind).coerceIn(0, 7 - shape.width)
-                    if (shape.translate(position.copy(x = newX)).none { it in mass }) {
-                        position = position.copy(x = newX)
+                    val newPosition = position.copy(x = newX)
+                    if (shape.translate(newPosition).none { it in mass }) {
+                        position = newPosition
                     }
-                    windIndex = (windIndex + 1) % winds.length
+                    windIndex++
                     moveSide = false
                 } else {
-                    val newY = (position.y + 1)
-                    if (shape.translate(position.copy(y = newY)).none { it in mass }) {
-                        position = position.copy(y = newY)
+                    val newPosition = position.copy(y = position.y + 1)
+                    if (shape.translate(newPosition).none { it in mass }) {
+                        position = newPosition
                     } else {
                         blocked = true
                     }
@@ -55,27 +48,15 @@ fun main() {
                 }
             }
 
-            abs(mass.minOf {
-                it.y.toFloat()
-            }.toInt())
+            abs(mass.minOf { it.y.toFloat() }.toInt())
         }
         part1 test 1 expect 3068
 
-        part2(expected = BigInteger.valueOf(1540804597682)) { input ->
+        part2(expected = 1540804597682) { input ->
             var shape = Shape.Minus
             var position = Point(2, -4)
-            val winds = input.single()
+            val winds = input.parseGasJets()
             var windIndex = 0
-
-//            val remaining = BigInteger("1000000000000") - BigInteger.valueOf(23)
-//            remaining.log("remaining")
-//            val coveredByPattern = remaining / BigInteger.valueOf(35)
-//            coveredByPattern.log("covered")
-//            val left = remaining % BigInteger.valueOf(35)
-//            left.log("left")
-//
-//            val result = BigInteger.valueOf(23) + BigInteger.valueOf(53) * coveredByPattern + BigInteger.valueOf(44)
-//            result.log("result")
 
             val states = mutableMapOf<String, Int>()
             val heights = mutableListOf<Int>()
@@ -83,25 +64,22 @@ fun main() {
             var rock = 1
             var moveSide = true
             var indexWhenStarting = 0
-            val foundDuplicates = mutableMapOf<String, Int>()
             while (true) {
                 var blocked = false
                 if (moveSide) {
-                    val wind = when (winds[windIndex]) {
-                        '<' -> -1
-                        else -> 1
-                    }
+                    val wind = winds[windIndex % winds.size]
 
                     val newX = (position.x + wind).coerceIn(0, 7 - shape.width)
-                    if (shape.translate(position.copy(x = newX)).none { it in mass }) {
-                        position = position.copy(x = newX)
+                    val newPosition = position.copy(x = newX)
+                    if (shape.translate(newPosition).none { it in mass }) {
+                        position = newPosition
                     }
-                    windIndex = (windIndex + 1) % winds.length
+                    windIndex++
                     moveSide = false
                 } else {
-                    val newY = (position.y + 1)
-                    if (shape.translate(position.copy(y = newY)).none { it in mass }) {
-                        position = position.copy(y = newY)
+                    val newPosition = position.copy(y = position.y + 1)
+                    if (shape.translate(newPosition).none { it in mass }) {
+                        position = newPosition
                     } else {
                         blocked = true
                     }
@@ -109,76 +87,61 @@ fun main() {
                 }
 
                 if (blocked) {
-                    if (rock > 14000) {
-
-                        val key = key(shape, indexWhenStarting, mass)
-                    if (key in states) {
-//                        "duplicate $rock seen:${states[key]} with key:$key".log()
-//                        "found duplicate, same as ${states[key]}".log() 1540804597682
-                        break
-                        if (key in foundDuplicates) {
-                            if (foundDuplicates.getValue(key) == 1) {
-                            } else {
-                                foundDuplicates[key] = foundDuplicates.getValue(key) + 1
-                            }
+                    if (rock > 250) {
+                        val key = key(shape, indexWhenStarting)
+                        if (key in states) {
+                            break
                         } else {
-                            foundDuplicates += key to 1
+                            states += key to rock
                         }
-                    } else {
-                        states += key to rock
-                    }
                     }
                     mass += shape.translate(position)
                     val height = abs(mass.minOf { it.y.toFloat() }.toInt())
                     heights.add(height)
-//                    "adding $rock seen:${states[key]} with key:$key height:$height".log()
                     shape = shape.next()
                     position = Point(x = 2, y = mass.minOf { it.y } - 4)
                     rock++
                     moveSide = true
-                    indexWhenStarting = windIndex
+                    indexWhenStarting = windIndex % winds.size
                 }
             }
 
-            val key = key(shape, indexWhenStarting, mass)
-            val rockNumber = states.getValue(key).log("index")
-            val heightBeforePattern = heights.get(rockNumber - 2).log("height").toBigInteger()
-            val other = heights.last().log("other")
-            val heightPerPattern = other.toBigInteger() - heightBeforePattern // could be that it should be adjusted up or down
-//            heightPerPattern.log("height per pattern")
+            val key = key(shape, indexWhenStarting)
+            val rockNumber = states.getValue(key)
+            val heightBeforePattern = heights[rockNumber - 2]
+            val other = heights.last()
+            val heightPerPattern = other - heightBeforePattern
 
-            val bigint = BigInteger("1000000000000")
-            val mid = bigint - (rockNumber - 1).toBigInteger()
+            val bigint = 1_000_000_000_000
+            val mid = bigint - (rockNumber - 1)
 
-            val countPerPattern = heights.drop(rockNumber - 1).count().log("pattern len")
-            val coveredByPattern = mid / countPerPattern.toBigInteger()
-            val after = mid % countPerPattern.toBigInteger()
-//            after.log("after")
+            val countPerPattern = heights.drop(rockNumber - 1).count()
+            val coveredByPattern = mid / countPerPattern
+            val after = mid % countPerPattern
 
             val t = heights.drop(rockNumber - 2)
                 .take(after.toInt() + 1).let { it.last() - it.first() }
-                .toBigInteger()
 
             heightBeforePattern + coveredByPattern * heightPerPattern + t
         }
-        part2 test 1 expect BigInteger("1514285714288")
+        part2 test 1 expect 1514285714288
     }
 }
 
-private fun key(shape: Shape, index: Int, mass: Set<Point>): String {
-    val minY = mass.minOf { it.y }
-    val s = buildString {
-        for (x in (0 until 7)) {
-            val p = mass.find { it.x == x && it.y == minY }
-            if (p == null) {
-                append(" ")
-            } else {
-                append("#")
-            }
-        }
-    }
-    return shape.name + index + s
+private fun Input.parseGasJets() = single().map { if (it == '<') -1 else 1 }
+
+private fun key(shape: Shape, index: Int): String = shape.name + index
+
+private fun Shape.translate(position: Point): List<Point> = points.map { it + position }
+
+private fun Shape.next() = when (this) {
+    Shape.Minus -> Shape.Plus
+    Shape.Plus -> Shape.Corner
+    Shape.Corner -> Shape.Line
+    Shape.Line -> Shape.Square
+    Shape.Square -> Shape.Minus
 }
+
 private enum class Shape(val points: List<Point>) {
     Minus(listOf(Point(0, 0), Point(1, 0), Point(2, 0), Point(3, 0))),
     Plus(listOf(Point(1, 0), Point(0, -1), Point(1, -1), Point(2, -1), Point(1, -2))),
@@ -188,15 +151,4 @@ private enum class Shape(val points: List<Point>) {
 
     val width = points.maxOf { it.x } - points.minOf { it.x } + 1
 
-    fun translate(position: Point): List<Point> {
-        return points.map { it + position }
-    }
-
-    fun next() = when (this) {
-        Minus -> Plus
-        Plus -> Corner
-        Corner -> Line
-        Line -> Square
-        Square -> Minus
-    }
 }
