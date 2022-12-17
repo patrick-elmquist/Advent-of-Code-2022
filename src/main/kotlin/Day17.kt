@@ -6,9 +6,10 @@ import java.math.BigInteger
 import kotlin.math.abs
 
 // answer #1: 3114
-// answer #2: not 1541458733208, too high
+// answer #2: 1540804597682
 // not 1541294964005
 // not 1540143884869
+// not 1539481268010
 
 fun main() {
     day(n = 17) {
@@ -60,7 +61,7 @@ fun main() {
         }
         part1 test 1 expect 3068
 
-        part2 { input ->
+        part2(expected = BigInteger.valueOf(1540804597682)) { input ->
             var shape = Shape.Minus
             var position = Point(2, -4)
             val winds = input.single()
@@ -108,13 +109,15 @@ fun main() {
                 }
 
                 if (blocked) {
-                    val key = key(shape, indexWhenStarting, mass)
+                    if (rock > 14000) {
+
+                        val key = key(shape, indexWhenStarting, mass)
                     if (key in states) {
 //                        "duplicate $rock seen:${states[key]} with key:$key".log()
-//                        "found duplicate, same as ${states[key]}".log()
+//                        "found duplicate, same as ${states[key]}".log() 1540804597682
+                        break
                         if (key in foundDuplicates) {
-                            if (foundDuplicates.getValue(key) == 8) {
-                                break
+                            if (foundDuplicates.getValue(key) == 1) {
                             } else {
                                 foundDuplicates[key] = foundDuplicates.getValue(key) + 1
                             }
@@ -123,6 +126,7 @@ fun main() {
                         }
                     } else {
                         states += key to rock
+                    }
                     }
                     mass += shape.translate(position)
                     val height = abs(mass.minOf { it.y.toFloat() }.toInt())
