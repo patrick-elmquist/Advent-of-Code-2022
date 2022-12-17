@@ -2,6 +2,7 @@ import day.day
 import day.single
 import util.Point
 import util.log
+import java.math.BigInteger
 import kotlin.math.abs
 
 // answer #1:
@@ -13,16 +14,12 @@ fun main() {
             var shape = Shape.Minus
             val n = 2022
             var position = Point(2, -4)
-            val floor = List(7) { Point(it, 0) }
             val winds = input.single()
             var windIndex = 0
-
-            val mass = mutableSetOf<Point>()
-            mass.addAll(floor)
+            val mass = List(7) { Point(it, 0) }.toMutableSet()
             var rock = 1
-//            print(floor, position, shape)
             var moveSide = true
-            while (rock < 2023) {
+            while (rock <= n) {
                 var blocked = false
                 if (moveSide) {
                     val wind = when (winds[windIndex]) {
@@ -31,48 +28,27 @@ fun main() {
                     }
 
                     val newX = (position.x + wind).coerceIn(0, 7 - shape.width)
-//                    println("x:${position.x} wind:$wind width:${shape.width} newX:$newX")
                     if (shape.translate(position.copy(x = newX)).none { it in mass }) {
                         position = position.copy(x = newX)
-
-                        windIndex = (windIndex + 1) % winds.length
-
-//                        println("side ${if (wind == -1) "left" else "right"} index:$windIndex")
-//                        println(winds.take(windIndex))
-//                        println(winds)
-                    } else {
-//                        println("blocked on moving to the side")
-                        windIndex = (windIndex + 1) % winds.length
-//                        blocked = true
                     }
+                    windIndex = (windIndex + 1) % winds.length
                     moveSide = false
                 } else {
                     val newY = (position.y + 1)
                     if (shape.translate(position.copy(y = newY)).none { it in mass }) {
                         position = position.copy(y = newY)
-//                        println("down")
                     } else {
-//                        println("blocked on going down")
                         blocked = true
                     }
                     moveSide = true
                 }
 
-                if (rock == 49) {
-//                    print(mass, position, shape, false)
-                }
-
-//                rock.log("blocked:$blocked")
-//                if (rock == 49) print(floor, position, shape, false)
                 if (blocked) {
                     mass += shape.translate(position)
-//                    floor = shape.newFloorP(floor, position)
                     shape = shape.next()
                     position = Point(x = 2, y = mass.minOf { it.y } - 4)
                     rock++
-//                    if (rock == 49) print(floor, position, shape)
                     moveSide = true
-//                    print(mass, position, shape, true)
                 }
             }
 
@@ -84,18 +60,26 @@ fun main() {
 
         part2 { input ->
             var shape = Shape.Minus
-            val n = 2022
             var position = Point(2, -4)
-            val floor = List(7) { Point(it, 0) }
             val winds = input.single()
             var windIndex = 0
 
-            val mass = mutableSetOf<Point>()
-            mass.addAll(floor)
+            val remaining = BigInteger("1000000000000") - BigInteger.valueOf(23)
+            remaining.log("remaining")
+            val coveredByPattern = remaining / BigInteger.valueOf(35)
+            coveredByPattern.log("covered")
+            val left = remaining % BigInteger.valueOf(35)
+            left.log("left")
+
+            val result = BigInteger.valueOf(23) + BigInteger.valueOf(53) * coveredByPattern + BigInteger.valueOf(44)
+            result.log("result")
+
+            val states = mutableMapOf<String, Int>()
+            val mass = List(7) { Point(it, 0) }.toMutableSet()
             var rock = 1
-//            print(floor, position, shape)
             var moveSide = true
-            while (rock < 2023) {
+            var indexWhenStarting = 0
+            while (true) {
                 var blocked = false
                 if (moveSide) {
                     val wind = when (winds[windIndex]) {
@@ -104,51 +88,41 @@ fun main() {
                     }
 
                     val newX = (position.x + wind).coerceIn(0, 7 - shape.width)
-//                    println("x:${position.x} wind:$wind width:${shape.width} newX:$newX")
                     if (shape.translate(position.copy(x = newX)).none { it in mass }) {
                         position = position.copy(x = newX)
-
-                        windIndex = (windIndex + 1) % winds.length
-
-//                        println("side ${if (wind == -1) "left" else "right"} index:$windIndex")
-//                        println(winds.take(windIndex))
-//                        println(winds)
-                    } else {
-//                        println("blocked on moving to the side")
-                        windIndex = (windIndex + 1) % winds.length
-//                        blocked = true
                     }
+                    windIndex = (windIndex + 1) % winds.length
                     moveSide = false
                 } else {
                     val newY = (position.y + 1)
                     if (shape.translate(position.copy(y = newY)).none { it in mass }) {
                         position = position.copy(y = newY)
-//                        println("down")
                     } else {
-//                        println("blocked on going down")
                         blocked = true
                     }
                     moveSide = true
                 }
 
-                if (rock == 49) {
-//                    print(mass, position, shape, false)
-                }
-
-//                rock.log("blocked:$blocked")
-//                if (rock == 49) print(floor, position, shape, false)
                 if (blocked) {
+                    val key = shape.name + indexWhenStarting
+                    if (key in states) {
+//                        "duplicate $rock seen:${states[key]} with key:$key".log()
+                    } else {
+                        states += key to rock
+                    }
+                    val height = abs(mass.minOf { it.y.toFloat() }.toInt())
+                    "duplicate $rock seen:${states[key]} with key:$key height:$height".log()
                     mass += shape.translate(position)
-//                    floor = shape.newFloorP(floor, position)
                     shape = shape.next()
                     position = Point(x = 2, y = mass.minOf { it.y } - 4)
                     rock++
-//                    if (rock == 49) print(floor, position, shape)
                     moveSide = true
-//                    print(mass, position, shape, true)
+                    indexWhenStarting = windIndex
                 }
             }
 
+
+//            23L + coveredByPattern * 53
             abs(mass.minOf {
                 it.y.toFloat()
             }.toInt())
@@ -219,45 +193,6 @@ private enum class Shape(val points: List<Point>) {
     Square(listOf(Point(0, 0), Point(1, 0), Point(0, -1), Point(1, -1)));
 
     val width = points.maxOf { it.x } - points.minOf { it.x } + 1
-    val height = points.maxOf { it.y } - points.minOf { it.y } + 1
-
-    fun newFloorP(oldFloor: List<Point>, position: Point): List<Point> {
-        val translated = translate(position)
-        return buildList {
-            val map = (0 until 7)
-                .map { x -> translated.filter { it.x == x }.minByOrNull { it.y } ?: oldFloor[x] }
-            map
-                .zipWithNext()
-                .onEach { (a, b) ->
-                    add(a)
-                    when {
-                        b.y == a.y -> Unit
-                        b.y < a.y -> Unit
-                        else -> {
-                            for (y in a.y + 1 .. b.y) {
-                                add(Point(a.x, y))
-                            }
-                        }
-                    }
-                }
-                map.takeLast(2).let { (a, b) ->
-                    add(b)
-                    when {
-                        b.y == a.y -> Unit
-                        b.y < a.y -> Unit
-                        else -> {
-                            for (y in a.y + 1 .. b.y) {
-                                add(Point(b.x, y))
-                            }
-                        }
-                    }
-                }
-//            for (x in 0 until 7) {
-//                val element = translated.filter { it.x == x }.minByOrNull { it.y } ?: oldFloor[x]
-//                add(element)
-//            }
-        }
-    }
 
     fun translate(position: Point): List<Point> {
         return points.map { it + position }
