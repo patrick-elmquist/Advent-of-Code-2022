@@ -13,10 +13,7 @@ fun main() {
             surfaceAreaOfCluster(cubes)
         }
         part1 test 1 expect 10
-        part1 test 2 expect 22
-        part1 test 3 expect 64
-        part1 test 4 expect 108
-        part1 test 5 expect 36
+        part1 test 2 expect 64
 
         part2(expected = 2564) { input ->
             val cubes = input.parseCubes()
@@ -30,58 +27,50 @@ fun main() {
             val minZ = cubes.minOf { it.z }
             val maxZ = cubes.maxOf { it.z }
 
-            val inverse = mutableSetOf<Point3D>()
+            val cubesOfAir = mutableSetOf<Point3D>()
 
-            var volume = 0
             for (x in minX..maxX) {
                 for (y in minY..maxY) {
                     for (z in minZ..maxZ) {
-                        volume++
-                        inverse.add(Point3D(x, y, z).takeIf { it !in cubes } ?: continue)
+                        cubesOfAir.add(Point3D(x, y, z).takeIf { it !in cubes } ?: continue)
                     }
                 }
             }
 
-            val queue = mutableListOf(inverse.first())
+            val queue = mutableListOf(cubesOfAir.first())
             val visited = mutableSetOf<Point3D>()
-            val clusters = mutableSetOf<Set<Point3D>>()
-            val cluster = mutableSetOf<Point3D>()
-            while (queue.isNotEmpty() || visited.size < inverse.size) {
-                val air = queue.removeLastOrNull() ?: inverse.first { it !in visited }.also {
-                    clusters.add(cluster.toSet())
-                    cluster.clear()
+            val airClusters = mutableSetOf<Set<Point3D>>()
+            val currentCluster = mutableSetOf<Point3D>()
+            while (queue.isNotEmpty() || visited.size < cubesOfAir.size) {
+                val cubeOfAir = queue.removeLastOrNull() ?: cubesOfAir.first { it !in visited }.also {
+                    airClusters.add(currentCluster.toSet())
+                    currentCluster.clear()
                 }
 
-                if (air in visited) continue
+                if (cubeOfAir in visited) continue
 
-                cluster.add(air)
-                visited += air
+                currentCluster.add(cubeOfAir)
+                visited += cubeOfAir
 
-                air.neighbors().filter { it in inverse }.forEach { n ->
-                    queue.add(n)
-                }
+                cubeOfAir.neighbors()
+                    .filter { it in cubesOfAir }
+                    .forEach { n -> queue.add(n) }
             }
-            clusters.add(cluster.toSet())
-            val clustersWithin = clusters.filter { cluster ->
-                cluster.none {
-                    it.x == minX || it.x == maxX || it.y == minY || it.y == maxY || it.z == minZ || it.z == maxZ
-                }
-            }
+            airClusters.add(currentCluster.toSet())
 
-            val surfaceAreaWithin = clustersWithin
+            val surfaceAreaWithinDroplet = airClusters
+                .filter { cluster ->
+                    // If there's no connection to the containing box, it's within the droplet
+                    cluster.none { (x, y, z) ->
+                        x == minX || x == maxX || y == minY || y == maxY || z == minZ || z == maxZ
+                    }
+                }
                 .sumOf { f -> surfaceAreaOfCluster(f) }
 
-            val allSurfaceArea = surfaceAreaOfCluster(cubes)
-
-            allSurfaceArea - surfaceAreaWithin
+            surfaceAreaOfCluster(cubes) - surfaceAreaWithinDroplet
         }
-        part2 test 3 expect 58
+        part2 test 2 expect 58
     }
-}
-
-private fun surfaceAreaOfCluster(cubes: Collection<Point3D>): Int {
-    val usedSides = cubes.sumOf { cube -> cube.neighbors().count { it in cubes } }
-    return cubes.size * 6 - usedSides
 }
 
 private fun Input.parseCubes() =
@@ -89,3 +78,8 @@ private fun Input.parseCubes() =
         val (x, y, z) = it.split(",").map(String::toInt)
         Point3D(x, y, z)
     }
+
+private fun surfaceAreaOfCluster(cluster: Collection<Point3D>): Int {
+    val sidesWithNeighbor = cluster.sumOf { cube -> cube.neighbors().count { it in cluster } }
+    return cluster.size * 6 - sidesWithNeighbor
+}
