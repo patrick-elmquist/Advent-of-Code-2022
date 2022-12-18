@@ -74,11 +74,9 @@ fun main() {
     }
 }
 
-private fun Input.parseCubes() = lines
-    .map { line ->
-        line.split(",")
-            .map(String::toInt)
-            .let { (x, y, z) -> Point3D(x, y, z) }
+private fun Input.parseCubes() =
+    lines.map { line ->
+        line.split(",").map(String::toInt).let { (x, y, z) -> Point3D(x, y, z) }
     }
 
 private fun surfaceAreaOfCluster(cluster: Collection<Point3D>): Int =
