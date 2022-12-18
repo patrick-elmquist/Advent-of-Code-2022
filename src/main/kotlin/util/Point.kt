@@ -12,6 +12,15 @@ data class Point(val x: Int, val y: Int) {
     companion object
 }
 
+data class Point3D(val x: Int, val y: Int, val z: Int) {
+    constructor(x: String, y: String, z: String) : this(x.toInt(), y.toInt(), z.toInt())
+
+    operator fun plus(point: Point) = Point(x + point.x, y + point.y)
+    operator fun minus(point: Point) = Point(x - point.x, y - point.y)
+
+    companion object
+}
+
 fun Point.neighbors(
     diagonal: Boolean = false,
     includeSelf: Boolean = false
@@ -47,3 +56,15 @@ fun Point.neighborsContainPoint(
 
     return px == x && inY || py == y && inX
 }
+
+fun Point3D.neighbors() = sequence {
+    yield(copy(y = y - 1))
+    yield(copy(y = y + 1))
+
+    yield(copy(x = x - 1))
+    yield(copy(x = x + 1))
+
+    yield(copy(z = z - 1))
+    yield(copy(z = z + 1))
+}
+
