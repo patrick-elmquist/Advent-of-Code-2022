@@ -81,7 +81,5 @@ private fun Input.parseCubes() = lines
             .let { (x, y, z) -> Point3D(x, y, z) }
     }
 
-private fun surfaceAreaOfCluster(cluster: Collection<Point3D>): Int {
-    val sidesWithNeighbor = cluster.sumOf { cube -> cube.neighbors().count { it in cluster } }
-    return cluster.size * 6 - sidesWithNeighbor
-}
+private fun surfaceAreaOfCluster(cluster: Collection<Point3D>): Int =
+    cluster.sumOf { cube -> 6 - cube.neighbors().count { it in cluster } }
