@@ -1,6 +1,6 @@
 import day.Input
 import day.day
-import util.log
+import kotlin.math.max
 
 // answer #1: 1528
 // answer #2: 16926
@@ -10,25 +10,19 @@ fun main() {
         part1(expected = 1528) { input ->
             val parsed = input.parse()
 
-            (1 .. 32).map {
-                it to getMaxGeode().take(it).reduce(Int::plus)
-            }.toMap(maxGeode)
-//            maxGeode[0] = 0
-            maxGeode.log()
-
             parsed.map { blueprint ->
-                max = 0
+                bestScenario = 0
                 solve(
+                    blueprint,
                     State(
-                        blueprint = blueprint,
                         minute = 1,
-                        stop = 24,
+                        lastMinute = 24,
                         oreRobots = 1,
-                        maxClay = blueprint.all.maxOf { it.clay },
-                        maxOre = blueprint.all.maxOf { it.ore },
-                        maxObsidian = blueprint.all.maxOf { it.obsidian },
+                        clayMaxNeeded = blueprint.all.maxOf { it.clay },
+                        oreMaxNeeded = blueprint.all.maxOf { it.ore },
+                        obsidianMaxNeeded = blueprint.all.maxOf { it.obsidian },
                     )
-                ).log()
+                )
             }
                 .withIndex()
                 .sumOf { (i, v) -> (i + 1) * v }
@@ -38,132 +32,115 @@ fun main() {
         part2(expected = 16926) { input ->
             val parsed = input.parse()
 
-            maxGeode.clear()
-            (1 .. 32).map {
-                it to getMaxGeode().take(it).reduce(Int::plus)
-            }.toMap(maxGeode)
             parsed.take(3).map { blueprint ->
-                max = 0
+                bestScenario = 0
                 solve(
+                    blueprint,
                     State(
-                        blueprint = blueprint,
                         minute = 1,
-                        stop = 32,
+                        lastMinute = 32,
                         oreRobots = 1,
-                        maxClay = blueprint.all.maxOf { it.clay },
-                        maxOre = blueprint.all.maxOf { it.ore },
-                        maxObsidian = blueprint.all.maxOf { it.obsidian },
+                        clayMaxNeeded = blueprint.all.maxOf { it.clay },
+                        oreMaxNeeded = blueprint.all.maxOf { it.ore },
+                        obsidianMaxNeeded = blueprint.all.maxOf { it.obsidian },
                     )
-                ).log()
+                )
             }.reduce(Int::times) // this is not to be used as a real answer, multiply together instead
         }
         part2 test 1 expect (56 * 62)
     }
 }
 
-private fun getMaxGeode() = generateSequence(1) { index ->
-    index + 1
+private var bestScenario = 0
+private fun resourceSequence() = generateSequence(1) { index -> index + 1 }
+private val maxGeode = (1..32).associateWith {
+    resourceSequence().take(it).reduce(Int::plus)
 }
-private val maxGeode = mutableMapOf<Int, Int>()
-private var max = 0
-private var cache = mutableMapOf<State, Int>()
-private fun solve(state: State): Int {
-    val blueprint = state.blueprint
 
-    if (state.minute > state.stop) return state.quality.also { max = kotlin.math.max(it, max) }
-//    if (state.minute == state.stop && state.geodeRobots == 0) return state.quality
-//    if (state.minute == state.stop - 5 && state.clayRobots == 0) return state.quality
-//    if (state.minute == state.stop - 4 && state.obsidianRobots == 0) return state.quality
-
-    val timeLeft = state.stop - state.minute
-    if (state in cache) {
-        return cache.getValue(state)
+private fun solve(
+    blueprint: Blueprint,
+    state: State,
+    cache: MutableMap<State, Int> = mutableMapOf()
+): Int {
+    if (state.minute > state.lastMinute) {
+        bestScenario = max(state.geode, bestScenario)
+        return state.geode
     }
 
-    val get = maxGeode.get(timeLeft)
-    if (get != null && state.geode + state.geodeRobots * (timeLeft + 1) + get < max) {
-//        "max:$max utopia:${get + state.geode + state.geodeRobots * timeLeft} geodes:${state.geode} robots:${state.geodeRobots} left:$timeLeft".log()
+    val timeLeft = state.lastMinute - state.minute
+
+    val get = maxGeode[timeLeft]
+    if (get != null && state.geode + state.geodeRobots * (timeLeft + 1) + get < bestScenario) {
         return 0
     }
 
-    val qualityCreateGeode =
+    val createGeode =
         if (state.ore >= blueprint.geodeRobot.ore && state.obsidian >= blueprint.geodeRobot.obsidian) {
-            return solveAndCache(
+            solveWithCache(
                 state.copy(
                     ore = state.ore - blueprint.geodeRobot.ore,
                     obsidian = state.obsidian - blueprint.geodeRobot.obsidian,
                     geodeRobots = state.geodeRobots + 1
-                ), state
+                ), state, blueprint, cache
             )
-        } else {
-            0
-        }
+        } else 0
 
-    val stopOreEarly = (timeLeft * state.oreRobots + state.ore > timeLeft * state.maxOre)
-    val qualityCreateOre =
+    val stopOreEarly = timeLeft * state.oreRobots + state.ore > timeLeft * state.oreMaxNeeded
+    val createOre =
         if (state.ore >= blueprint.oreRobot.ore && !stopOreEarly) {
-            solveAndCache(
+            solveWithCache(
                 state.copy(
                     ore = state.ore - blueprint.oreRobot.ore,
                     oreRobots = state.oreRobots + 1
-                ), state
+                ), state, blueprint, cache
             )
-        } else {
-            0
-        }
+        } else 0
 
-    val stopClayEarly = (timeLeft * state.clayRobots + state.clay > timeLeft * state.maxClay)
-    val qualityCreateClay =
+    val stopClayEarly = timeLeft * state.clayRobots + state.clay > timeLeft * state.clayMaxNeeded
+    val createClay =
         if (state.ore >= blueprint.clayRobot.ore && !stopClayEarly) {
-            solveAndCache(
+            solveWithCache(
                 state.copy(
                     ore = state.ore - blueprint.clayRobot.ore,
                     clayRobots = state.clayRobots + 1
-                ), state
+                ), state, blueprint, cache
             )
-        } else {
-            0
-        }
+        } else 0
 
-    val stopObsidianEarly = (timeLeft * state.obsidianRobots + state.obsidian > timeLeft * state.maxObsidian)
-    val qualityCreateObsidian =
+    val stopObsidianEarly = timeLeft * state.obsidianRobots + state.obsidian > timeLeft * state.obsidianMaxNeeded
+    val createObsidian =
         if (state.ore >= blueprint.obsidianRobot.ore && state.clay >= blueprint.obsidianRobot.clay && !stopObsidianEarly) {
-            solveAndCache(
+            solveWithCache(
                 state.copy(
                     ore = state.ore - blueprint.obsidianRobot.ore,
                     clay = state.clay - blueprint.obsidianRobot.clay,
                     obsidianRobots = state.obsidianRobots + 1
-                ), state
+                ), state, blueprint, cache
             )
-        } else {
-            0
-        }
+        } else 0
 
-    val doNothing = solveAndCache(state, state)
+    val doNothing = solveWithCache(state, state, blueprint, cache)
 
-    return listOf(
-        doNothing,
-        qualityCreateOre,
-        qualityCreateClay,
-        qualityCreateObsidian,
-        qualityCreateGeode
-    ).max()
+    return listOf(doNothing, createOre, createClay, createObsidian, createGeode).max()
 }
 
-private fun solveAndCache(
+private fun solveWithCache(
     next: State,
     state: State,
-) = if (next in cache) {
-    cache.getValue(next)
-} else {
-    val next1 = next.copy(
-        minute = next.minute + 1,
-        ore = next.ore + state.oreRobots,
-        clay = next.clay + state.clayRobots,
-        obsidian = next.obsidian + state.obsidianRobots,
-        geode = next.geode + state.geodeRobots,
-    )
-    solve(next1).also { cache[next1] = it }
+    blueprint: Blueprint,
+    cache: MutableMap<State, Int>
+) = when (next) {
+    in cache -> cache.getValue(next)
+    else -> {
+        val nextAfterCollect = next.copy(
+            minute = next.minute + 1,
+            ore = next.ore + state.oreRobots,
+            clay = next.clay + state.clayRobots,
+            obsidian = next.obsidian + state.obsidianRobots,
+            geode = next.geode + state.geodeRobots,
+        )
+        cache.getOrPut(nextAfterCollect) { solve(blueprint, nextAfterCollect, cache) }
+    }
 }
 
 private data class Blueprint(
@@ -175,6 +152,22 @@ private data class Blueprint(
     val all = listOf(oreRobot, clayRobot, obsidianRobot, geodeRobot)
 }
 
+private data class State(
+    val minute: Int,
+    val lastMinute: Int,
+    val ore: Int = 0,
+    val oreRobots: Int = 0,
+    val oreMaxNeeded: Int,
+    val clay: Int = 0,
+    val clayRobots: Int = 0,
+    val clayMaxNeeded: Int,
+    val obsidian: Int = 0,
+    val obsidianRobots: Int = 0,
+    val obsidianMaxNeeded: Int,
+    val geode: Int = 0,
+    val geodeRobots: Int = 0
+)
+
 private data class Cost(
     val ore: Int = 0,
     val clay: Int = 0,
@@ -185,43 +178,6 @@ private data class Cost(
         clay: String? = null,
         obsidian: String? = null
     ) : this(ore?.toIntOrNull() ?: 0, clay?.toIntOrNull() ?: 0, obsidian?.toIntOrNull() ?: 0)
-
-    override fun toString(): String {
-        return buildString {
-            if (ore > 0) {
-                append("$ore ore")
-                if (clay > 0 || obsidian > 0)
-                    append(" and ")
-            }
-            if (clay > 0) {
-                append("$clay clay")
-                if (obsidian > 0)
-                    append(" and ")
-            }
-            if (obsidian > 0) {
-                append("$obsidian obsidian")
-            }
-        }
-    }
-}
-
-private data class State(
-    val minute: Int,
-    val stop: Int,
-    val oreRobots: Int = 0,
-    val clayRobots: Int = 0,
-    val obsidianRobots: Int = 0,
-    val geodeRobots: Int = 0,
-    val ore: Int = 0,
-    val clay: Int = 0,
-    val obsidian: Int = 0,
-    val geode: Int = 0,
-    val blueprint: Blueprint,
-    val maxOre: Int,
-    val maxObsidian: Int,
-    val maxClay: Int,
-) {
-    val quality = geode
 }
 
 private fun Input.parse() =
@@ -232,8 +188,8 @@ private fun Input.parse() =
                 Blueprint(
                     oreRobot = Cost(ore = it[0].split(" ")[4]),
                     clayRobot = Cost(ore = it[1].split(" ")[4]),
-                    obsidianRobot = it[2].split(" ").let { Cost(ore = it[4], clay = it[7]) },
-                    geodeRobot = it[3].split(" ").let { Cost(ore = it[4], obsidian = it[7]) },
+                    obsidianRobot = it[2].split(" ").let { split -> Cost(ore = split[4], clay = split[7]) },
+                    geodeRobot = it[3].split(" ").let { split -> Cost(ore = split[4], obsidian = split[7]) },
                 )
             }
     }
