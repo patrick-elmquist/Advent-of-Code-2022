@@ -1,6 +1,5 @@
 import day.Input
 import day.day
-import day.single
 import util.Point
 import kotlin.math.abs
 
@@ -114,7 +113,7 @@ fun main() {
     }
 }
 
-private fun Input.parseGasJets() = single().map { if (it == '<') -1 else 1 }
+private fun Input.parseGasJets() = lines.single().map { if (it == '<') -1 else 1 }
 
 private fun key(shape: Rock, index: Int): String = "$shape $index"
 

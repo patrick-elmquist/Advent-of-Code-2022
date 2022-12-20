@@ -23,7 +23,7 @@ data class Answer(
     val time: Duration
 )
 
-@Suppress("unused")
+@Suppress("unused", "MemberVisibilityCanBePrivate")
 class Sheet(private val day: Int) {
     private val _parts = mutableListOf<Part>()
     val parts: List<Part>
@@ -36,12 +36,11 @@ class Sheet(private val day: Int) {
     var breakAfterTest: Boolean = false
         private set
 
+    var ignorePart1 = false
     val part1 get() = TestBuilder(PartId.One)
 
-    val part2 get() = TestBuilder(PartId.Two)
-
-    var ignorePart1 = false
     var ignorePart2 = false
+    val part2 get() = TestBuilder(PartId.Two)
 
     fun part1(expected: Any? = null, block: (Input) -> Any?) =
         addPart(PartId.One, expected, block)
@@ -55,9 +54,6 @@ class Sheet(private val day: Int) {
 
     infix fun TestBuilder.test(test: Int): TestBuilder =
         apply { input = Input(day = day, test = test) }
-
-    infix fun TestBuilder.test(string: String): TestBuilder =
-        apply { input = Input(string) }
 
     infix fun TestBuilder.test(lines: List<String>): TestBuilder =
         apply { input = Input(lines) }

@@ -18,14 +18,14 @@ private const val FILENAME_FORMAT_TEST = "tests/test-day-%d-%d.txt"
 private const val FILENAME_PROPERTIES = "local.properties"
 private const val PROPERTY_KEY_SESSION = "session"
 
-fun getInputFile(day: Int): File =
+fun inputFileFor(day: Int): File =
     File("$PATH_RESOURCES/${FILENAME_FORMAT_INPUT.format(day)}")
 
-fun getTestFile(day: Int, n: Int): File =
+fun testFileFor(day: Int, n: Int): File =
     File("$PATH_RESOURCES/${FILENAME_FORMAT_TEST.format(day, n)}")
 
-suspend fun makeSureInputFileIsAvailable(n: Int): Boolean {
-    val filename = FILENAME_FORMAT_INPUT.format(n)
+suspend fun makeSureInputFileIsAvailable(day: Int): Boolean {
+    val filename = FILENAME_FORMAT_INPUT.format(day)
     val inputFile = File("$PATH_RESOURCES/$filename")
     if (inputFile.isNonEmptyFile) {
         return true
@@ -42,7 +42,7 @@ suspend fun makeSureInputFileIsAvailable(n: Int): Boolean {
             level = LogLevel.NONE
         }
     }
-    val response = client.get(URL_FORMAT_INPUT.format(n)) {
+    val response = client.get(URL_FORMAT_INPUT.format(day)) {
         header("Cookie", "session=$session")
     }
     if (response.status == HttpStatusCode.NotFound) {

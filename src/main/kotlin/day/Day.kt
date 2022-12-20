@@ -9,17 +9,18 @@ fun day(
     n: Int,
     block: Sheet.() -> Unit
 ) = runBlocking {
-    if (makeSureInputFileIsAvailable(n)) {
+    if (makeSureInputFileIsAvailable(day = n)) {
         collectSolutions(n, block).verifyAndRun(input = Input(day = n))
     } else {
         println("Input file is not available")
     }
 }
 
-private inline fun collectSolutions(day: Int, block: Sheet.() -> Unit): Sheet =
-    Sheet(day = day).apply(block)
+private inline fun collectSolutions(
+    day: Int,
+    block: Sheet.() -> Unit
+) = Sheet(day = day).apply(block)
 
-// TODO move the majority of content in this file into some kind of runner class that can use the benchmark
 private inline fun Sheet.verifyAndRun(input: Input) {
     parts.forEach { part ->
         val result = part.evaluate(
@@ -79,8 +80,9 @@ private inline fun Part.evaluate(
     }
 }
 
-private inline fun Part.runWithTimer(input: Input): Answer =
-    measureTimedValue { algorithm(input) }.let { result -> Answer(result.value, result.duration) }
+private inline fun Part.runWithTimer(input: Input) =
+    measureTimedValue { algorithm(input) }
+        .let { result -> Answer(result.value, result.duration) }
 
 private inline fun success(answer: Answer) = Result.success(answer)
 private inline fun failure(message: String) = Result.failure<Answer>(AssertionError(message))

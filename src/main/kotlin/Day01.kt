@@ -1,6 +1,6 @@
 
 import day.day
-import day.slicedByBlank
+import util.sliceByBlank
 import util.toInts
 
 // answer #1: 71780
@@ -9,12 +9,12 @@ import util.toInts
 fun main() {
     day(n = 1) {
         part1(expected = 71780) { input ->
-            input.slicedByBlank()
+            input.lines.sliceByBlank()
                 .maxOfOrNull { group -> group.toInts().sum() }
         }
 
         part2(expected = 212489) { input ->
-            input.slicedByBlank()
+            input.lines.sliceByBlank()
                 .map { group -> group.toInts().sum() }
                 .sortedDescending()
                 .take(3)
