@@ -3,7 +3,7 @@ import day.toInts
 import util.log
 import kotlin.math.abs
 
-// answer #1: not -6880
+// answer #1: not 6766, too low
 // answer #2:
 
 fun main() {
@@ -24,11 +24,7 @@ fun main() {
             }
             val idNodeMap = ints.drop(1).mapIndexed { index, i ->
                 val id = "${index + 1} $i"
-                id to Node(
-                    id = id,
-                    value = i,
-                    prev = head,
-                ).also {
+                id to Node(id = id, value = i).also {
                     prev.next = it
                     it.prev = prev
                     prev = it
@@ -40,6 +36,7 @@ fun main() {
 
             solve2(head, idsInOrder, idNodeMap)
         }
+//        part1 test 2 expect 10
         part1 test 1 expect 3
 
         part2 { input ->
@@ -56,14 +53,17 @@ private fun solve2(head: Node, idsInOrder: List<String>, idNodeMap: Map<String, 
         when {
             node.value < 0 -> {
                 var prev = node.back
-                repeat(abs(node.value)) {
-                    prev = prev.back
-                }
                 val cBack = node.back
                 val cHead = node.forward
-                val nHead = prev.forward
                 cHead.prev = cBack
                 cBack.next = cHead
+                repeat(abs(node.value)) {
+                    prev = prev.back
+                    if (prev == node) {
+                        prev = prev.back
+                    }
+                }
+                val nHead = prev.forward
                 prev.next = node
                 node.prev = prev
                 nHead.prev = node
@@ -71,15 +71,15 @@ private fun solve2(head: Node, idsInOrder: List<String>, idNodeMap: Map<String, 
             }
 
             node.value > 0 -> {
-                var prev = node
-                repeat(abs(node.value)) {
-                    prev = prev.forward
-                }
+                var prev = node.forward
                 val cBack = node.back
                 val cHead = node.forward
-                val nHead = prev.forward
                 cHead.prev = cBack
                 cBack.next = cHead
+                repeat(abs(node.value) - 1) {
+                    prev = prev.forward
+                }
+                val nHead = prev.forward
                 prev.next = node
                 node.prev = prev
                 nHead.prev = node
@@ -88,13 +88,16 @@ private fun solve2(head: Node, idsInOrder: List<String>, idNodeMap: Map<String, 
 
             else -> return@forEach
         }
+//        print(head)
+//        println()
     }
 
+    print(head)
     var index1 = Int.MIN_VALUE
     var index2 = Int.MIN_VALUE
     var index3 = Int.MIN_VALUE
-    var i = 0
-    var current = idNodeMap.values.first { it.value == 0 }.back
+    var i = 1
+    var current = idNodeMap.values.first { it.value == 0 }.log("node 0")
     while (i <= 3001) {
         current = current.forward
         if (i == 1000) {
