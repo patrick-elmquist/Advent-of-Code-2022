@@ -8,49 +8,17 @@ fun main() {
     day(n = 20) {
         part1(expected = 7395L) { input ->
             val longs = input.lines.map(String::toLong)
-            val first = longs.first()
-            val head = Node(value = first)
-            var prev = head
-            val idsInOrder = longs.mapIndexed { index, i ->
-                "$index $i"
-            }
-            val idNodeMap = longs.drop(1).mapIndexed { index, i ->
-                val id = "${index + 1} $i"
-                id to Node(i).also {
-                    prev.next = it
-                    it.prev = prev
-                    prev = it
-                }
-            }.toMap().toMutableMap()
-            idNodeMap["0 $first"] = head
-            prev.next = head
-            head.prev = prev
-
+            val idNodeMap = idToNodeMap(longs)
+            val idsInOrder = idNodeMap.keys.map(String::toInt).sorted().map(Int::toString)
             solve2(idsInOrder, idNodeMap)
             findResult(idNodeMap)
         }
         part1 test 1 expect 3L
 
         part2(expected = 1640221678213L) { input ->
-            val longs = input.lines.map(String::toLong)
-                .map { it * 811589153L }
-            val first = longs.first()
-            val head = Node(first)
-            var prev = head
-            val idsInOrder = longs.mapIndexed { index, i ->
-                "$index $i"
-            }
-            val idNodeMap = longs.drop(1).mapIndexed { index, i ->
-                val id = "${index + 1} $i"
-                id to Node(i).also {
-                    prev.next = it
-                    it.prev = prev
-                    prev = it
-                }
-            }.toMap().toMutableMap()
-            idNodeMap["0 $first"] = head
-            prev.next = head
-            head.prev = prev
+            val longs = input.lines.map(String::toLong).map { it * 811589153L }
+            val idNodeMap = idToNodeMap(longs)
+            val idsInOrder = idNodeMap.keys.map(String::toInt).sorted().map(Int::toString)
 
             repeat(10) {
                 solve2(idsInOrder, idNodeMap)
@@ -59,6 +27,24 @@ fun main() {
         }
         part2 test 1 expect 1623178306L
     }
+}
+
+private fun idToNodeMap(longs: List<Long>): MutableMap<String, Node> {
+    val first = longs.first()
+    val head = Node(first)
+    var prev = head
+    val idNodeMap = longs.drop(1).mapIndexed { index, i ->
+        val id = "${index + 1}"
+        id to Node(i).also {
+            prev.next = it
+            it.prev = prev
+            prev = it
+        }
+    }.toMap().toMutableMap()
+    idNodeMap["0"] = head
+    prev.next = head
+    head.prev = prev
+    return idNodeMap
 }
 
 private fun findResult(idNodeMap: MutableMap<String, Node>): Long =
