@@ -50,7 +50,7 @@ private fun idToNodeMap(longs: List<Long>): MutableMap<String, Node> {
 private fun findResult(idNodeMap: MutableMap<String, Node>): Long =
     buildList {
         var current = idNodeMap.values.first { it.value == 0L }
-        for (i in 1..3001) {
+        for (i in 1..3000) {
             current = current.forward
             if (i == 1000 || i == 2000 || i == 3000) {
                 add(current.value)
@@ -66,20 +66,17 @@ private fun solve(idsInOrder: List<String>, idNodeMap: Map<String, Node>) {
         var prev = if (node.value < 0) node.back else node.forward
         node.forward.prev = node.back
         node.back.next = node.forward
+        val absoluteMovementd = abs(node.value)
         when {
-            node.value < 0 -> {
-                repeat((abs(node.value) % adjustedSize).toInt()) {
+            node.value < 0 -> repeat((absoluteMovementd % adjustedSize).toInt()) {
+                prev = prev.back
+                if (prev == node) {
                     prev = prev.back
-                    if (prev == node) {
-                        prev = prev.back
-                    }
                 }
             }
 
-            else -> {
-                repeat(((abs(node.value) - 1) % adjustedSize).toInt()) {
-                    prev = prev.forward
-                }
+            else -> repeat(((absoluteMovementd - 1) % adjustedSize).toInt()) {
+                prev = prev.forward
             }
         }
         val nHead = prev.forward
