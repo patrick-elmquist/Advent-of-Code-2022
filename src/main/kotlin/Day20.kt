@@ -10,7 +10,7 @@ fun main() {
             val longs = input.lines.map(String::toLong)
             val idNodeMap = idToNodeMap(longs)
             val idsInOrder = idNodeMap.keys.map(String::toInt).sorted().map(Int::toString)
-            solve2(idsInOrder, idNodeMap)
+            solve(idsInOrder, idNodeMap)
             findResult(idNodeMap)
         }
         part1 test 1 expect 3L
@@ -21,7 +21,7 @@ fun main() {
             val idsInOrder = idNodeMap.keys.map(String::toInt).sorted().map(Int::toString)
 
             repeat(10) {
-                solve2(idsInOrder, idNodeMap)
+                solve(idsInOrder, idNodeMap)
             }
             findResult(idNodeMap)
         }
@@ -58,7 +58,7 @@ private fun findResult(idNodeMap: MutableMap<String, Node>): Long =
         }
     }.sum()
 
-private fun solve2(idsInOrder: List<String>, idNodeMap: Map<String, Node>) {
+private fun solve(idsInOrder: List<String>, idNodeMap: Map<String, Node>) {
     val adjustedSize = idsInOrder.size - 1
     idsInOrder.forEach { id ->
         val node = idNodeMap.getValue(id)
