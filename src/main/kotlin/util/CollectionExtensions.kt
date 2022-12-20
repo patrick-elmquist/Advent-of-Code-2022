@@ -1,8 +1,5 @@
 package util
 
-fun Collection<String>.toInts() = map { it.toInt() }
-fun Collection<String>.toLongs() = map { it.toLong() }
-
 fun List<String>.sliceByBlank() =
     sliceBy(excludeMatch = true) { _, line -> line.isEmpty() }
 

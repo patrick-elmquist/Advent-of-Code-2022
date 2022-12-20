@@ -16,6 +16,11 @@ inline fun <T> T.log(): T {
     return this.also { println(it) }
 }
 
+inline fun <T> T.log(msg: (T) -> Any): T {
+    if (!loggingEnabled) return this
+    return this.also { println(msg(this)) }
+}
+
 inline fun <T> T.log(msg: String): T {
     if (!loggingEnabled) return this
     return this.also { println("$msg $it") }
