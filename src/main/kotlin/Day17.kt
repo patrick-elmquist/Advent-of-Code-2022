@@ -60,7 +60,7 @@ fun main() {
             val heights = mutableListOf<Int>()
             val ground = floor.toMutableSet()
             var rockCount = 1
-            var shapeInitialJetIndex = 0
+            var rockInitialJetIndex = 0
             while (true) {
                 val jetOffset = jets[jetIndex++ % jets.size]
 
@@ -75,7 +75,7 @@ fun main() {
                     position = newPosition
                 } else {
                     if (rockCount > 250) {
-                        val key = key(rock, shapeInitialJetIndex)
+                        val key = key(rock, rockInitialJetIndex)
                         if (key in states) {
                             break
                         } else {
@@ -88,21 +88,21 @@ fun main() {
                     rock = rocks[rockCount % rocks.size]
                     position = startPoint + Point(0, ground.minOf { it.y })
                     rockCount++
-                    shapeInitialJetIndex = jetIndex % jets.size
+                    rockInitialJetIndex = jetIndex % jets.size
                 }
             }
 
-            val key = key(rock, shapeInitialJetIndex)
+            val key = key(rock, rockInitialJetIndex)
             val rockNumber = states.getValue(key)
             val heightBeforePattern = heights[rockNumber - 2]
-            val other = heights.last()
-            val heightPerPattern = other - heightBeforePattern
+            val heightWithPattern = heights.last()
+            val heightPerPattern = heightWithPattern - heightBeforePattern
 
-            val mid = 1_000_000_000_000L - (rockNumber - 1)
+            val rocksLeftOnPatternStart = 1_000_000_000_000L - (rockNumber - 1)
 
             val countPerPattern = heights.drop(rockNumber - 1).count()
-            val coveredByPattern = mid / countPerPattern
-            val after = mid % countPerPattern
+            val coveredByPattern = rocksLeftOnPatternStart / countPerPattern
+            val after = rocksLeftOnPatternStart % countPerPattern
 
             val remaining = heights.drop(rockNumber - 2)
                 .take(after.toInt() + 1).let { it.last() - it.first() }
