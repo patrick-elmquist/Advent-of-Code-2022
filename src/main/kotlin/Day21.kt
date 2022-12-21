@@ -14,8 +14,7 @@ fun main() {
         part1 test 1 expect 152L
 
         part2(expected = 3916936880448L) { input ->
-            val monkeys = input.parseMonkeys()
-                .toMutableMap()
+            val monkeys = input.parseMonkeys().toMutableMap()
             monkeys.remove("humn")
 
             val root = monkeys.getValue("root") as Number.Expression
