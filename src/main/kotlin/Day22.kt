@@ -1,12 +1,11 @@
-import Dir2.*
+import Dir.*
 import Side.*
 import day.day
 import util.Point
-import util.log
 import util.sliceByBlank
 
 // answer #1: 109094
-// answer #2:
+// answer #2: 53324
 
 private const val WALL = '#'
 private const val VOID = ' '
@@ -15,7 +14,6 @@ private fun Char.isVoid() = this == VOID
 
 fun main() {
     day(n = 22) {
-        ignorePart1 = true
         part1(expected = 109094) { input ->
             val sliced = input.lines.sliceByBlank()
             val matrix = sliced.first()
@@ -27,12 +25,11 @@ fun main() {
                     if (i in row.indices) row[i] else ' '
                 }
             }.toTypedArray()
-            val (pos, dir) = solve(toTypedArray, instructions, ::walk)
-            (pos.x + 1) * 4 + (pos.y + 1) * 1000 + dir.score()
+            solve2D(toTypedArray, instructions)
         }
         part1 test 1 expect 6032
 
-        part2 { input ->
+        part2(expected = 53324) { input ->
             val sliced = input.lines.sliceByBlank()
             val matrix = sliced.first()
             val map = matrix.flatMapIndexed { y, row ->
@@ -41,123 +38,134 @@ fun main() {
 
             val instructions = sliced.last().first()
             solve3D(instructions, map)
-
         }
-//        part2 test 1 expect 5031
     }
 }
 
-private fun solve3D(
-    instructions: String,
-    map: Map<Point, Char>,
-): Int {
-    var instr = instructions
+private fun solve3D(allInstructions: String, map: Map<Point, Char>): Int {
+    var instructions = allInstructions
     val startPos = map.entries.filter { it.key.y == 0 }.minBy { it.key.x }.key
-    var currPos = startPos
-    var currDir = RIGHT
-    while (instr.isNotEmpty()) {
-        val firstTurnIdx = instr.indexOfFirst { it == 'R' || it == 'L' }
+    var position = startPos
+    var direction = Right
+    while (instructions.isNotEmpty()) {
+        val firstTurnIdx = instructions.indexOfFirst { it == 'R' || it == 'L' }
         // MOVING
         if (firstTurnIdx > 0 || firstTurnIdx == -1) {
-            val move = if (firstTurnIdx == -1) instr.toInt() else instr.substring(0, firstTurnIdx).toInt()
-            instr = if (firstTurnIdx == -1) "" else instr.substring(firstTurnIdx)
+            val move = if (firstTurnIdx == -1) {
+                instructions.toInt()
+            } else {
+                instructions.substring(0, firstTurnIdx).toInt()
+            }
+            instructions = if (firstTurnIdx == -1) {
+                ""
+            } else {
+                instructions.substring(firstTurnIdx)
+            }
             for (i in 0 until move) {
-                val (nextPos, nextDir) =
-                    if (map.containsKey(currPos + currDir.p)) { Pair(currPos + currDir.p, currDir) } // Normal move
-                    else { cubeWrap(currPos, currDir) } //Wrap around
-                if (map[nextPos] == '#') break
-                else {
-                    currPos = nextPos
-                    currDir = nextDir
+                val (nextPos, nextDir) = if (map.containsKey(position + direction.p)) {
+                    Pair(position + direction.p, direction)
+                } else {
+                    val currentSide = sideOf(position)
+                    wrapCube(position, direction, currentSide)
+                }
+                if (map[nextPos] == '#') {
+                    break
+                } else {
+                    position = nextPos
+                    direction = nextDir
                 }
             }
-        } else { // TURNING
-            currDir = if (instr[0] == 'R') { currDir.right() } else { currDir.left() }
-            instr = instr.drop(1)
+        } else {
+            direction = if (instructions.first() == 'R') {
+                direction.clockwise()
+            } else {
+                direction.counterClockwise()
+            }
+            instructions = instructions.drop(1)
         }
     }
-    return 1000 * (currPos.y + 1) + 4 * (currPos.x + 1) + currDir.ordinal
+    return 1000 * (position.y + 1) + 4 * (position.x + 1) + direction.ordinal
 }
 
-fun cubeWrap(curr: Point, currDir: Dir2): Pair<Point, Dir2> {
-    var nextDir = currDir
-    val currSide = sideOf(curr)
-    var nextPos = curr
-    if (currSide == A && currDir == UP) {
-        nextDir = RIGHT
-        nextPos = Point(0, 3 * 50 + curr.x - 50) // nextSide = F
-    } else if (currSide == A && currDir == LEFT) {
-        nextDir = RIGHT
-        nextPos = Point(0, 2 * 50 + (50 - curr.y - 1)) // nextSide = E
-    } else if (currSide == B && currDir == UP) {
-        nextDir = UP
-        nextPos = Point(curr.x - 100, 199) // nextSide = F
-    } else if (currSide == B && currDir == RIGHT) {
-        nextDir = LEFT
-        nextPos = Point(99, (50 - curr.y) + 2 * 50 - 1) // nextSide = D
-    } else if (currSide == B && currDir == DOWN) {
-        nextDir = LEFT
-        nextPos = Point(99, 50 + (curr.x - 2 * 50)) // nextSide = C
-    } else if (currSide == C && currDir == RIGHT) {
-        nextDir = UP
-        nextPos = Point((curr.y - 50) + 2 * 50, 49) // nextSide = B
-    } else if (currSide == C && currDir == LEFT) {
-        nextDir = DOWN
-        nextPos = Point(curr.y - 50, 100) // nextSide = E
-    } else if (currSide == E && currDir == LEFT) {
-        nextDir = RIGHT
-        nextPos = Point(50, 50 - (curr.y - 2 * 50) - 1) // nextSide = A
-    } else if (currSide == E && currDir == UP) {
-        nextDir = RIGHT
-        nextPos = Point(50, 50 + curr.x) // nextSide = C
-    } else if (currSide == D && currDir == DOWN) {
-        nextDir = LEFT
-        nextPos = Point(49, 3 * 50 + (curr.x - 50)) // nextSide = F
-    } else if (currSide == D && currDir == RIGHT) {
-        nextDir = LEFT
-        nextPos = Point(149, 50 - (curr.y - 50 * 2) - 1) // nextSide = B
-    } else if (currSide == F && currDir == RIGHT) {
-        nextDir = UP
-        nextPos = Point((curr.y - 3 * 50) + 50, 149) // nextSide = D
-    } else if (currSide == F && currDir == LEFT) {
-        nextDir = DOWN
-        nextPos = Point(50 + (curr.y - 3 * 50), 0) // nextSide = A
-    } else if (currSide == F && currDir == DOWN) {
-        nextDir = DOWN
-        nextPos = Point(curr.x + 100, 0) // nextSide = B
+private fun wrapCube(position: Point, direction: Dir, side: Side) =
+    when {
+        side == A && direction == Up ->
+            Point(0, 3 * 50 + position.x - 50) to Right
+
+        side == A && direction == Left ->
+            Point(0, 2 * 50 + (50 - position.y - 1)) to Right
+
+        side == B && direction == Up ->
+            Point(position.x - 100, 199) to Up
+
+        side == B && direction == Right ->
+            Point(99, (50 - position.y) + 2 * 50 - 1) to Left
+
+        side == B && direction == Down ->
+            Point(99, 50 + (position.x - 2 * 50)) to Left
+
+        side == C && direction == Right ->
+            Point((position.y - 50) + 2 * 50, 49) to Up
+
+        side == C && direction == Left ->
+            Point(position.y - 50, 100) to Down
+
+        side == E && direction == Left ->
+            Point(50, 50 - (position.y - 2 * 50) - 1) to Right
+
+        side == E && direction == Up ->
+            Point(50, 50 + position.x) to Right
+
+        side == D && direction == Down ->
+            Point(49, 3 * 50 + (position.x - 50)) to Left
+
+        side == D && direction == Right ->
+            Point(149, 50 - (position.y - 50 * 2) - 1) to Left
+
+        side == F && direction == Right ->
+            Point((position.y - 3 * 50) + 50, 149) to Up
+
+        side == F && direction == Left ->
+            Point(50 + (position.y - 3 * 50), 0) to Down
+
+        side == F && direction == Down ->
+            Point(position.x + 100, 0) to Down
+
+        else -> position to direction
     }
-    return Pair(nextPos, nextDir)
-}
 
 enum class Side { A, B, C, D, E, F }
 
-private fun sideOf(pos: Point): Side {
-    if (pos.x in 50..99 && pos.y in 0..49) return A
-    if (pos.x in 100..149 && pos.y in 0..49) return B
-    if (pos.x in 50..99 && pos.y in 50..99) return C
-    if (pos.x in 50..99 && pos.y in 100..149) return D
-    if (pos.x in 0..49 && pos.y in 100..149) return E
-    if (pos.x in 0..49 && pos.y in 150..199) return F
-    throw java.lang.RuntimeException("Side does not exist for $pos")
+private fun sideOf(p: Point) = when {
+    p.x in 50..99 && p.y in 0..49 -> A
+    p.x in 100..149 && p.y in 0..49 -> B
+    p.x in 50..99 && p.y in 50..99 -> C
+    p.x in 50..99 && p.y in 100..149 -> D
+    p.x in 0..49 && p.y in 100..149 -> E
+    p.x in 0..49 && p.y in 150..199 -> F
+    else -> error("wtf $p")
 }
-enum class Dir2(val p: Point) { RIGHT(Point(1, 0)), DOWN(Point(0, 1)), LEFT(Point(-1, 0)), UP(Point(0, -1));
-    fun right() = values()[(this.ordinal + 1).mod(values().size)]
-    fun left() = values()[(this.ordinal - 1).mod(values().size)]
+
+enum class Dir(val p: Point) {
+    Right(Point(1, 0)),
+    Down(Point(0, 1)),
+    Left(Point(-1, 0)),
+    Up(Point(0, -1));
+
+    fun clockwise() = values()[(this.ordinal + 1).mod(values().size)]
+    fun counterClockwise() = values()[(this.ordinal - 1).mod(values().size)]
 }
-private fun solve(
+
+private fun solve2D(
     matrix: Array<Array<Char>>,
-    instructions: String,
-    walk: (Point, Dir, Int, Array<Array<Char>>) -> List<Point>
-): Pair<Point, Dir> {
+    instructions: String
+): Int {
     var position = Point(matrix.first().indexOfFirst { it == '.' }, 0)
-    var direction = Dir.Right
+    var direction = Right
     val positions = mutableMapOf(position to direction)
     var instruction = instructions
-    print(matrix, positions)
-    println()
     var count = 0
     while (instruction.isNotEmpty()) {
-        count.log("count=")
         instruction = if (instruction.first().isDigit()) {
             val n = instruction.takeWhile { it.isDigit() }
             val path = walk(position, direction, n.toInt(), matrix)
@@ -174,50 +182,10 @@ private fun solve(
         }
         count++
     }
-    return position to direction
+
+    return 1000 * (position.y + 1) + 4 * (position.x + 1) + direction.ordinal
 }
 
-private fun print(matrix: Array<Array<Char>>, positions: Map<Point, Dir>) {
-    matrix.forEachIndexed { i, row ->
-        row.forEachIndexed { j, c ->
-            val char = when (positions[Point(j, i)]) {
-                null -> c
-                Dir.Right -> '>'
-                Dir.Down -> 'v'
-                Dir.Left -> '<'
-                Dir.Up -> '^'
-            }
-            print(char)
-        }
-        println()
-    }
-    println()
-}
-
-private fun Dir.score() = when (this) {
-    Dir.Right -> 0
-    Dir.Down -> 1
-    Dir.Left -> 2
-    Dir.Up -> 3
-}
-
-private fun Dir.clockwise() = when (this) {
-    Dir.Right -> Dir.Down
-    Dir.Down -> Dir.Left
-    Dir.Left -> Dir.Up
-    Dir.Up -> Dir.Right
-}.also { log { "changed dir clockwise from=$this to=$it" } }
-
-private fun Dir.counterClockwise() = when (this) {
-    Dir.Right -> Dir.Up
-    Dir.Down -> Dir.Right
-    Dir.Left -> Dir.Down
-    Dir.Up -> Dir.Left
-}.also { log { "changed dir counter clockwise from=$this to=$it" } }
-
-private enum class Dir { Left, Up, Right, Down }
-
-// region Part 1
 private fun wrapRightOrDown(array: Array<Char>): Int =
     array.withIndex().first { (_, c) -> c != VOID }.index
 
@@ -225,37 +193,35 @@ private fun wrapLeftOrUp(array: Array<Char>): Int =
     array.withIndex().last { (_, c) -> c != VOID }.index
 
 private fun walk(point: Point, dir: Dir, steps: Int, matrix: Array<Array<Char>>): List<Point> {
-    "trying to move $steps to the $dir".log()
     val list = mutableListOf(point)
     var x = point.x
     var y = point.y
     val row = matrix[y]
     val col = matrix.map { it[x] }.toTypedArray()
     repeat(steps) {
-        it.log("current x=$x y=$y rowLast=${row.lastIndex} colLast=${col.lastIndex} i=")
         when (dir) {
-            Dir.Left -> {
+            Left -> {
                 x--
                 if (x < 0 || matrix[y][x].isVoid()) {
                     x = wrapLeftOrUp(row)
                 }
             }
 
-            Dir.Right -> {
+            Right -> {
                 x++
                 if (x > row.lastIndex || matrix[y][x].isVoid()) {
                     x = wrapRightOrDown(row)
                 }
             }
 
-            Dir.Up -> {
+            Up -> {
                 y--
                 if (y < 0 || matrix[y][x].isVoid()) {
                     y = wrapLeftOrUp(col)
                 }
             }
 
-            Dir.Down -> {
+            Down -> {
                 y++
                 if (y > col.lastIndex || matrix[y][x].isVoid()) {
                     y = wrapRightOrDown(col)
@@ -270,5 +236,3 @@ private fun walk(point: Point, dir: Dir, steps: Int, matrix: Array<Array<Char>>)
     }
     return list
 }
-
-// endregion
