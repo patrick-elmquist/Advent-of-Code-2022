@@ -2,21 +2,25 @@ import day.day
 import util.Point
 import util.log
 import util.sliceByBlank
-import kotlin.math.log
 
-// answer #1:
+// answer #1: 109094
 // answer #2:
 
 fun main() {
     day(n = 22) {
-        part1 { input ->
+        part1(expected = 109094) { input ->
             val sliced = input.lines.sliceByBlank()
             val matrix = sliced.first()
+            val maxX = matrix.maxOf { it.length }
             val instructions = sliced.last().first()
 
-            val toTypedArray: Array<CharArray> = matrix.map { it.toCharArray() }.toTypedArray()
+            val toTypedArray = matrix.map { row ->
+                Array(maxX) { i ->
+                    if (i in row.indices) row[i] else ' '
+                }
+            }.toTypedArray()
             val (pos, dir) = solve(toTypedArray, instructions)
-            (pos.x + 1) * 4 + (pos.y * 1000) + dir.score()
+            (pos.x + 1) * 4 + (pos.y + 1) * 1000 + dir.score()
         }
         part1 test 1 expect 6032
 
@@ -27,91 +31,97 @@ fun main() {
     }
 }
 
-private fun solve(matrix: Array<CharArray>, instructions: String): Pair<Point, Dir> {
+private fun solve(matrix: Array<Array<Char>>, instructions: String): Pair<Point, Dir> {
     var position = Point(matrix.first().indexOfFirst { it == '.' }, 0)
     var direction = Dir.Right
     val positions = mutableMapOf(position to direction)
-    var i = instructions
+    var instruction = instructions
     print(matrix, positions)
-    while (i.isNotEmpty()) {
-        i = if (i.first().isDigit()) {
-            val n = i.takeWhile { it.isDigit() }
+    println()
+    var count = 0
+    while (instruction.isNotEmpty()) {
+        count.log("count=")
+        instruction = if (instruction.first().isDigit()) {
+            val n = instruction.takeWhile { it.isDigit() }
             val path = walk(position, direction, n.toInt(), matrix)
             positions += path.map { it to direction }
             position = path.last()
-            i.removePrefix(n)
+//            print(matrix, positions)
+            instruction.removePrefix(n)
         } else {
-            val d = i.first()
-            direction = when (d) {
+            direction = when (instruction.first()) {
                 'R' -> direction.clockwise()
                 'L' -> direction.counterClockwise()
                 else -> error("")
             }
-            i.drop(1)
+            instruction.drop(1)
         }
-        print(matrix, positions)
+        count++
     }
     return position to direction
 }
 
-private fun walk(point: Point, dir: Dir, steps: Int, matrix: Array<CharArray>): List<Point> {
-    return when (dir) {
-        Dir.Left -> walkLeft(point, matrix[point.y], steps)
-        Dir.Right -> walkRight(point, matrix[point.y], steps)
-        else -> TODO()
-//        Dir.Up -> (point.y downTo point.y - steps)
-//        Dir.Down -> point.y .. point.y + steps
-    }
+private fun wrapRightOrDown(array: Array<Char>): Int {
+    val trimmed = array.withIndex().filter { (_, c) -> c != VOID }
+    return trimmed.first().index
 }
 
-private fun walkLeft(point: Point, row: CharArray, steps: Int): List<Point> {
+// issue is probably that i stop when reaching 0 or last but there could be a lot of void there
+private fun wrapLeftOrUp(array: Array<Char>): Int {
+    val trimmed = array.withIndex().filter { (_, c) -> c != VOID }
+    return trimmed.last().index
+}
+
+private fun walk(point: Point, dir: Dir, steps: Int, matrix: Array<Array<Char>>): List<Point> {
+    "trying to move $steps to the $dir".log()
     val list = mutableListOf(point)
     var x = point.x
-    val y = point.y
+    var y = point.y
+    val row = matrix[y]
+    val col = matrix.map { it[x] }.toTypedArray()
     repeat(steps) {
-        x--
-        when (row[x]) {
-            '.' -> list += Point(x, y)
-            '#' -> return list
-            else -> {
-                val otherSideX = row.drop(x).indexOfFirst { it == ' ' }
-                x = when {
-                    otherSideX == -1 -> row.lastIndex.takeIf { row.last() != '#' } ?: return list
-                    row[otherSideX - 1] == '#' -> return list
-                    else -> otherSideX
+        it.log("current x=$x y=$y rowLast=${row.lastIndex} colLast=${col.lastIndex} i=")
+        when (dir) {
+            Dir.Left -> {
+                x--
+                if (x < 0 || matrix[y][x].isVoid()) {
+                    x = wrapLeftOrUp(row)
                 }
-                list += Point(x, y)
             }
+            Dir.Right -> {
+                x++
+                if (x > row.lastIndex || matrix[y][x].isVoid()) {
+                    x = wrapRightOrDown(row)
+                }
+            }
+            Dir.Up -> {
+                y--
+                if (y < 0 || matrix[y][x].isVoid()) {
+                    y = wrapLeftOrUp(col)
+                }
+            }
+            Dir.Down -> {
+                y++
+                if (y > col.lastIndex || matrix[y][x].isVoid()) {
+                    y = wrapRightOrDown(col)
+                }
+            }
+        }
+
+        when (matrix[y][x]) {
+            WALL -> return list
+            OPEN -> list += Point(x, y)
         }
     }
     return list
 }
 
-private fun walkRight(point: Point, row: CharArray, steps: Int): List<Point> {
-    val list = mutableListOf(point)
-    var x = point.x
-    val y = point.y
-    repeat(steps) {
-        x++
-        when (row[x]) {
-            '.' -> list += Point(x, y)
-            '#' -> return list
-            else -> {
-                val reversed = row.take(x + 1).reversed()
-                val otherSideX = reversed.indexOfFirst { it == ' ' }
-                x -= when {
-                    otherSideX == -1 -> reversed.lastIndex.takeIf { row.last() != '#' } ?: return list
-                    row[otherSideX - 1] == '#' -> return list
-                    else -> otherSideX
-                }
-                list += Point(x, y)
-            }
-        }
-    }
-    return list
-}
+private const val WALL = '#'
+private const val VOID = ' '
+private const val OPEN = '.'
+private fun Char.isVoid() = this == VOID
 
-private fun print(matrix: Array<CharArray>, positions: Map<Point, Dir>) {
+private fun print(matrix: Array<Array<Char>>, positions: Map<Point, Dir>) {
     matrix.forEachIndexed { i, row ->
         row.forEachIndexed { j, c ->
             val char = when (positions[Point(j, i)]) {
@@ -140,13 +150,13 @@ private fun Dir.clockwise() = when (this) {
     Dir.Down -> Dir.Left
     Dir.Left -> Dir.Up
     Dir.Up -> Dir.Right
-}.also { log { "changed dir clockwise from=$this to=$it"} }
+}.also { log { "changed dir clockwise from=$this to=$it" } }
 
 private fun Dir.counterClockwise() = when (this) {
     Dir.Right -> Dir.Up
     Dir.Down -> Dir.Right
     Dir.Left -> Dir.Down
     Dir.Up -> Dir.Left
-}.also { log { "changed dir counter clockwise from=$this to=$it"} }
+}.also { log { "changed dir counter clockwise from=$this to=$it" } }
 
 private enum class Dir { Left, Up, Right, Down }
