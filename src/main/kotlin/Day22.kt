@@ -1,6 +1,8 @@
 import day.day
 import util.Point
+import util.log
 import util.sliceByBlank
+import kotlin.math.log
 
 // answer #1:
 // answer #2:
@@ -53,30 +55,77 @@ private fun solve(matrix: Array<CharArray>, instructions: String): Pair<Point, D
 }
 
 private fun walk(point: Point, dir: Dir, steps: Int, matrix: Array<CharArray>): List<Point> {
-    val positions = mutableListOf(point)
+    return when (dir) {
+        Dir.Left -> walkLeft(point, matrix[point.y], steps)
+        Dir.Right -> walkRight(point, matrix[point.y], steps)
+        else -> TODO()
+//        Dir.Up -> (point.y downTo point.y - steps)
+//        Dir.Down -> point.y .. point.y + steps
+    }
+}
 
-    
+private fun walkLeft(point: Point, row: CharArray, steps: Int): List<Point> {
+    val list = mutableListOf(point)
+    var x = point.x
+    val y = point.y
+    repeat(steps) {
+        x--
+        when (row[x]) {
+            '.' -> list += Point(x, y)
+            '#' -> return list
+            else -> {
+                val otherSideX = row.drop(x).indexOfFirst { it == ' ' }
+                x = when {
+                    otherSideX == -1 -> row.lastIndex.takeIf { row.last() != '#' } ?: return list
+                    row[otherSideX - 1] == '#' -> return list
+                    else -> otherSideX
+                }
+                list += Point(x, y)
+            }
+        }
+    }
+    return list
+}
 
-    return positions
+private fun walkRight(point: Point, row: CharArray, steps: Int): List<Point> {
+    val list = mutableListOf(point)
+    var x = point.x
+    val y = point.y
+    repeat(steps) {
+        x++
+        when (row[x]) {
+            '.' -> list += Point(x, y)
+            '#' -> return list
+            else -> {
+                val reversed = row.take(x + 1).reversed()
+                val otherSideX = reversed.indexOfFirst { it == ' ' }
+                x -= when {
+                    otherSideX == -1 -> reversed.lastIndex.takeIf { row.last() != '#' } ?: return list
+                    row[otherSideX - 1] == '#' -> return list
+                    else -> otherSideX
+                }
+                list += Point(x, y)
+            }
+        }
+    }
+    return list
 }
 
 private fun print(matrix: Array<CharArray>, positions: Map<Point, Dir>) {
     matrix.forEachIndexed { i, row ->
         row.forEachIndexed { j, c ->
-            val p = Point(j, i)
-            val dir = positions[p]
-            val char = if (dir != null) {
-                when (dir) {
-                    Dir.Right -> '>'
-                    Dir.Down -> 'v'
-                    Dir.Left -> '<'
-                    Dir.Up -> '^'
-                }
-            } else c
+            val char = when (positions[Point(j, i)]) {
+                null -> c
+                Dir.Right -> '>'
+                Dir.Down -> 'v'
+                Dir.Left -> '<'
+                Dir.Up -> '^'
+            }
             print(char)
         }
         println()
     }
+    println()
 }
 
 private fun Dir.score() = when (this) {
@@ -91,60 +140,13 @@ private fun Dir.clockwise() = when (this) {
     Dir.Down -> Dir.Left
     Dir.Left -> Dir.Up
     Dir.Up -> Dir.Right
-}
+}.also { log { "changed dir clockwise from=$this to=$it"} }
 
 private fun Dir.counterClockwise() = when (this) {
     Dir.Right -> Dir.Up
     Dir.Down -> Dir.Right
     Dir.Left -> Dir.Down
     Dir.Up -> Dir.Left
-}
+}.also { log { "changed dir counter clockwise from=$this to=$it"} }
 
 private enum class Dir { Left, Up, Right, Down }
-
-//private sealed class MapTile {
-//    object Wall : MapTile()
-//    object Open : MapTile()
-//
-//    // map is <directionFrom, to>
-//    data class Portal(val destination: Map<Int, Point>)
-//}
-//
-
-//fun start() {
-//
-//    val map = mutableMapOf<Point, MapTile>()
-//    val matrix = sliced.first()
-//    fun findSurroundings(point: Point): Map<Point, MapTile> {
-//        val n = point.neighbors()
-//
-//        val left = point - Point(1, 0)
-//        if (matrix[left.y][left.x] == ' ') {
-//            var p = left
-//            while (matrix[p.y][p.x] != ' ') {
-//                if (p.)
-//            }
-//        }
-//
-//        val right = point + Point(1, 0)
-//        val top = point - Point(0, 1)
-//        val bottom = point + Point(0, 1)
-//
-//        TODO()
-//    }
-//    sliced.first().forEachIndexed { i, row ->
-//        row.forEachIndexed { j, c ->
-//            val point = Point(i, j)
-//            when (c) {
-//                '.' -> {
-//                    map[point] = MapTile.Open
-//                    map += findSurroundings(point)
-//                }
-//                '#' -> {
-//                    map[point] = MapTile.Wall
-//                    map += findSurroundings(point)
-//                }
-//            }
-//        }
-//    }
-//}
