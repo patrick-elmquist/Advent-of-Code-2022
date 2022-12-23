@@ -1,4 +1,5 @@
 import Compass.*
+import day.Input
 import day.day
 import util.Point
 import util.neighbors
@@ -10,34 +11,27 @@ import util.neighbors
 fun main() {
     day(n = 23) {
         part1(expected = 4052) { input ->
-            val elfs = input.lines.flatMapIndexed { y, row ->
-                row.mapIndexed { x, c ->
-                    Point(x, y) to c
-                }
-            }
-                .toMap()
-                .filterValues { it == '#' }
-                .keys
-
-            elfs.print()
-
-            val newSet = solve(elfs, rounds = 10)
-            val minMaxX = newSet.minMax { it.x }
-            val minMaxY = newSet.minMax { it.y }
-            minMaxX.count() * minMaxY.count() - newSet.size
+            val (elfs, _) = solve(parseElfs(input), rounds = 10)
+            elfs.minMax { it.x }.count() * elfs.minMax { it.y }.count() - elfs.size
         }
         part1 test 2 expect 25
         part1 test 1 expect 110
 
-        part2 { input ->
-
+        part2(expected = 978) { input ->
+            solve(parseElfs(input), rounds = Int.MAX_VALUE).second
         }
-        part2 test 1 expect 1
+        part2 test 1 expect 20
     }
 }
 
+private fun parseElfs(input: Input): Set<Point> =
+    input.lines
+        .flatMapIndexed { y, row -> row.mapIndexed { x, c -> Point(x, y) to c } }
+        .toMap()
+        .filterValues { it == '#' }
+        .keys
 
-private enum class Compass(val p: Point) {
+private enum class Compass(val point: Point) {
     N(Point(0, -1)),
     E(Point(1, 0)),
     S(Point(0, 1)),
@@ -48,22 +42,19 @@ private enum class Compass(val p: Point) {
     SW(Point(-1, 1))
 }
 
-
-private fun direction(round: Int): List<Point> {
-    return when (round % 4) {
+private fun direction(round: Int): List<Point> =
+    when (round % 4) {
         0 -> listOf(N, NE, NW)
         1 -> listOf(S, SE, SW)
         2 -> listOf(W, NW, SW)
         3 -> listOf(E, NE, SE)
         else -> error("")
-    }.map { it.p }
-}
+    }.map { it.point }
 
-private fun solve(elfs: Set<Point>, rounds: Int): Set<Point> {
+private fun solve(elfs: Set<Point>, rounds: Int): Pair<Set<Point>, Int> {
     var e = elfs
-    var i = 0
 
-    repeat(times = rounds) {
+    repeat(times = rounds) { i ->
         val newPositions = e
             .map { elf ->
                 val n = elf.neighbors(diagonal = true)
@@ -73,43 +64,23 @@ private fun solve(elfs: Set<Point>, rounds: Int): Set<Point> {
                     elf to elf + ((0 until 4).asSequence()
                         .map { direction(it + i) }
                         .firstOrNull { dirs -> dirs.none { elf + it in e } }
-                        ?.first() ?: Point(0,0))
+                        ?.first() ?: Point(0, 0))
                 }
             }
 
         val count = newPositions.groupingBy { it.second }.eachCount()
-        e = newPositions.map {
+        val newE = newPositions.map {
             if (count.getValue(it.second) == 1) {
                 it.second
             } else {
                 it.first
             }
         }.toSet()
-        e.print()
-        println()
-        i++
+        if ((e - newE).isEmpty()) return e to i + 1
+        e = newE
     }
-    return e
+    return e to rounds
 }
 
-private fun Set<Point>.minMax(block: (Point) -> Int): IntRange {
-    val minx = minOf { block(it) }
-    val maxx = maxOf { block(it) }
-    return minx..maxx
-}
-
-private fun Set<Point>.print() {
-    val minMaxX = minMax { it.x }
-    val minMaxY = minMax { it.y }
-    for (y in minMaxY) {
-        for (x in minMaxX) {
-            if (Point(x, y) in this) {
-                print('#')
-            } else {
-                print('.')
-            }
-        }
-        println()
-    }
-    println()
-}
+private fun Set<Point>.minMax(block: (Point) -> Int): IntRange =
+    minOf { block(it) }..maxOf { block(it) }
