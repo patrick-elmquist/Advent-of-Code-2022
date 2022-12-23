@@ -1,86 +1,64 @@
-import Compass.*
 import day.Input
 import day.day
 import util.Point
 import util.neighbors
 
-
 // answer #1: 4052
-// answer #2:
+// answer #2: 978
 
 fun main() {
     day(n = 23) {
         part1(expected = 4052) { input ->
-            val (elfs, _) = solve(parseElfs(input), rounds = 10)
-            elfs.minMax { it.x }.count() * elfs.minMax { it.y }.count() - elfs.size
+            val (elves, _) = solve(parseElves(input), rounds = 10)
+            val width = elves.maxOf { it.x } - elves.minOf { it.x } + 1
+            val height = elves.maxOf { it.y } - elves.minOf { it.y } + 1
+            width * height - elves.size
         }
-        part1 test 2 expect 25
         part1 test 1 expect 110
+        part1 test 2 expect 25
 
         part2(expected = 978) { input ->
-            solve(parseElfs(input), rounds = Int.MAX_VALUE).second
+            solve(parseElves(input), rounds = Int.MAX_VALUE).second
         }
         part2 test 1 expect 20
     }
 }
 
-private fun parseElfs(input: Input): Set<Point> =
+private fun parseElves(input: Input): Set<Point> =
     input.lines
         .flatMapIndexed { y, row -> row.mapIndexed { x, c -> Point(x, y) to c } }
         .toMap()
         .filterValues { it == '#' }
         .keys
 
-private enum class Compass(val point: Point) {
-    N(Point(0, -1)),
-    E(Point(1, 0)),
-    S(Point(0, 1)),
-    W(Point(-1, 0)),
-    NW(Point(-1, -1)),
-    NE(Point(1, -1)),
-    SE(Point(1, 1)),
-    SW(Point(-1, 1))
-}
+private val directions = listOf(
+    listOf(Point(0, -1), Point(1, -1), Point(-1, -1)),
+    listOf(Point(0, 1), Point(1, 1), Point(-1, 1)),
+    listOf(Point(-1, 0), Point(-1, -1), Point(-1, 1)),
+    listOf(Point(1, 0), Point(1, -1), Point(1, 1))
+)
 
-private fun direction(round: Int): List<Point> =
-    when (round % 4) {
-        0 -> listOf(N, NE, NW)
-        1 -> listOf(S, SE, SW)
-        2 -> listOf(W, NW, SW)
-        3 -> listOf(E, NE, SE)
-        else -> error("")
-    }.map { it.point }
-
-private fun solve(elfs: Set<Point>, rounds: Int): Pair<Set<Point>, Int> {
-    var e = elfs
+private fun solve(startingPositions: Set<Point>, rounds: Int): Pair<Set<Point>, Int> {
+    var elves = startingPositions
 
     repeat(times = rounds) { i ->
-        val newPositions = e
-            .map { elf ->
-                val n = elf.neighbors(diagonal = true)
-                if (n.none { it in e }) {
-                    elf to elf
-                } else {
-                    elf to elf + ((0 until 4).asSequence()
-                        .map { direction(it + i) }
-                        .firstOrNull { dirs -> dirs.none { elf + it in e } }
-                        ?.first() ?: Point(0, 0))
-                }
-            }
-
-        val count = newPositions.groupingBy { it.second }.eachCount()
-        val newE = newPositions.map {
-            if (count.getValue(it.second) == 1) {
-                it.second
+        val proposedMovements = elves.map { from ->
+            val to = if (from.neighbors(diagonal = true).none { it in elves }) {
+                from
             } else {
-                it.first
+                from + ((0 until 4).map { directions[(it + i) % directions.size] }
+                    .firstOrNull { dirs -> dirs.none { from + it in elves } }
+                    ?.first() ?: Point(0, 0))
             }
-        }.toSet()
-        if ((e - newE).isEmpty()) return e to i + 1
-        e = newE
-    }
-    return e to rounds
-}
+            from to to
+        }
 
-private fun Set<Point>.minMax(block: (Point) -> Int): IntRange =
-    minOf { block(it) }..maxOf { block(it) }
+        val elvesPerCell = proposedMovements.groupingBy { (_, to) -> to }.eachCount()
+        elves = proposedMovements
+            .map { (from, to) -> to.takeIf { elvesPerCell[it] == 1 } ?: from }
+            .toSet()
+            .takeIf { it != elves } ?: return elves to i + 1
+    }
+
+    return elves to rounds
+}
