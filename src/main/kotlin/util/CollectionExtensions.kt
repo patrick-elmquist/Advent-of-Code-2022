@@ -20,3 +20,9 @@ fun List<String>.sliceBy(
     }
     .first
     .toList()
+
+fun <T> Map<Point, T>.minMax(block: (Map.Entry<Point, T>) -> Int): IntRange {
+    val max = maxOf { block(it) }
+    val min = minOf { block(it) }
+    return min..max
+}
