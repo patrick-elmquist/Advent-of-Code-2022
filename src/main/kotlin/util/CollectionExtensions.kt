@@ -26,3 +26,18 @@ fun <T> Map<Point, T>.minMax(block: (Map.Entry<Point, T>) -> Int): IntRange {
     val min = minOf { block(it) }
     return min..max
 }
+
+fun <T> Map<Point, T>.print(
+    width: IntRange? = null,
+    height: IntRange? = null,
+    block: (Point, T?) -> Any? = { _, c -> c }) {
+    val xRange = width ?: minMax { it.key.x }
+    val yRange = height?: minMax { it.key.y }
+    for (y in yRange) {
+        for (x in xRange) {
+            val point = Point(x, y)
+            print(block(point, get(point)))
+        }
+        println()
+    }
+}
