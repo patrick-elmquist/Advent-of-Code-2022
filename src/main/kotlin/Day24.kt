@@ -2,41 +2,31 @@ import day.Input
 import day.day
 import day.pointCharMap
 import util.Point
-import util.log
 import util.neighbors
 import java.util.*
 import kotlin.math.abs
-import kotlin.math.min
 
 // answer #1: 334
 // answer #2: 934
-
-private fun Input.getStartEnd(): Pair<Point, Point> {
-    val start = lines.first().indexOfFirst { it == '.' }
-        .let { Point(it, 0) }
-    val end = lines.last().indexOfFirst { it == '.' }
-        .let { Point(it, lines.lastIndex) }
-    return start to end
-}
 
 fun main() {
     day(n = 24) {
         part1(expected = 334) { input ->
             val map = input.pointCharMap.toMutableMap()
 
-            val (start, end) = input.getStartEnd()
+            val (start, end) = input.parseStartAndEnd()
 
             val wallsAndBlizzards = map.mapValues { listOf(it.value) }
                 .filter { it != empty }
 
-            val states = generateAllMapStates(
+            val allMapStates = generateAllMapStates(
                 map = wallsAndBlizzards,
                 width = input.lines.first().length,
                 height = input.lines.size
             )
 
             solve(
-                states = states,
+                states = allMapStates,
                 start = start,
                 end = end,
                 map = wallsAndBlizzards
@@ -47,27 +37,28 @@ fun main() {
         part2(expected = 934) { input ->
             val map = input.pointCharMap.toMutableMap()
 
-            val (start, end) = input.getStartEnd()
+            val (start, end) = input.parseStartAndEnd()
 
-            val wallsAndBlizzards = map.mapValues { listOf(it.value) }
+            val wallsAndBlizzards = map
+                .mapValues { listOf(it.value) }
                 .filter { it != empty }
 
-            val states = generateAllMapStates(
+            val allMapStates = generateAllMapStates(
                 map = wallsAndBlizzards,
                 width = input.lines.first().length,
                 height = input.lines.size
             )
 
             val minutesThere = solve(
-                states = states,
+                states = allMapStates,
                 start = start,
                 end = end,
                 map = wallsAndBlizzards
             )
 
-            val minutesBack= solve(
+            val minutesBack = solve(
                 minutes = minutesThere,
-                states = states,
+                states = allMapStates,
                 start = end,
                 end = start,
                 map = wallsAndBlizzards
@@ -75,7 +66,7 @@ fun main() {
 
             solve(
                 minutes = minutesBack,
-                states = states,
+                states = allMapStates,
                 start = start,
                 end = end,
                 map = wallsAndBlizzards
@@ -85,65 +76,65 @@ fun main() {
     }
 }
 
+private fun Input.parseStartAndEnd(): Pair<Point, Point> {
+    val start = lines.first().indexOfFirst { it == '.' }
+        .let { Point(it, 0) }
+    val end = lines.last().indexOfFirst { it == '.' }
+        .let { Point(it, lines.lastIndex) }
+    return start to end
+}
+
 private fun generateAllMapStates(
     map: Map<Point, List<Char>>,
     width: Int,
     height: Int
-): List<Map<Point, Char>> {
-    var start = map
-    var blizzards = start.filterValues { it != wall && it != empty }
-    var flattened = blizzards.mapValues { '@' }
-    val list = mutableListOf<Map<Point, Char>>()
+): List<Set<Point>> {
+    var current = map
+    val initial = current.filterValues { it != wall && it != empty }.keys
+    val list = mutableListOf(initial)
     val walls = map.filterValues { it == wall }
-    list += flattened
-    var i = 0
     while (true) {
-        blizzards = start.filterValues { it != wall && it != empty }
-        val moved = blizzards
+        val moved = current
+            .filterValues { it != wall && it != empty }
             .flatMap { (point, list) -> list.map { move(point, it, width, height) to it } }
             .groupBy({ it.first }, { it.second })
-        flattened = moved.mapValues { '@' }
-        i++
-        if (flattened in list) {
-            "generate finished after $i rounds".log()
+        if (moved.keys in list) {
             return list
         } else {
-            list += flattened
-            start = walls + moved
+            list += moved.keys
+            current = walls + moved
         }
     }
 }
-// add wrapping
+
 private fun move(
     position: Point,
     direction: Char,
     width: Int,
     height: Int
-): Point {
-    return when (direction) {
-        '>' -> {
-            val x = (position.x + 1).takeIf { it < width - 1 }
-            position.copy(x = x ?: 1)
-        }
+) = when (direction) {
+    '>' -> {
+        val x = (position.x + 1).takeIf { it < width - 1 }
+        position.copy(x = x ?: 1)
+    }
 
-        '<' -> {
-            val x = (position.x - 1).takeIf { it > 0 }
-            position.copy(x = x ?: (width - 2))
-        }
+    '<' -> {
+        val x = (position.x - 1).takeIf { it > 0 }
+        position.copy(x = x ?: (width - 2))
+    }
 
-        'v' -> {
-            val y = (position.y + 1).takeIf { it < height - 1 }
-            position.copy(y = y ?: 1)
-        }
+    'v' -> {
+        val y = (position.y + 1).takeIf { it < height - 1 }
+        position.copy(y = y ?: 1)
+    }
 
-        '^' -> {
-            val y = (position.y - 1).takeIf { it > 0 }
-            position.copy(y = y ?: (height - 2))
-        }
+    '^' -> {
+        val y = (position.y - 1).takeIf { it > 0 }
+        position.copy(y = y ?: (height - 2))
+    }
 
-        else -> {
-            error("can't handle $direction from point $position")
-        }
+    else -> {
+        error("can't handle $direction from point $position")
     }
 }
 
@@ -151,7 +142,7 @@ private val wall = listOf('#')
 private val empty = listOf('.')
 
 private fun solve(
-    states: List<Map<Point, Char>>,
+    states: List<Set<Point>>,
     start: Point,
     end: Point,
     map: Map<Point, List<Char>>,
@@ -159,57 +150,53 @@ private fun solve(
 ): Int {
     val width = map.maxOf { it.key.x } - map.minOf { it.key.x } + 1
     val height = map.maxOf { it.key.y } - map.minOf { it.key.y } + 1
-    val queue = PriorityQueue<MapState>()
+    val walls = map.filterValues { it == wall }.keys
     val initial = MapState(
-        current = start,
+        position = start,
         end = end,
         minutes = minutes
     )
+    val queue = PriorityQueue<MapState>()
     queue.add(initial)
-    val walls = map.filterValues { it == wall }
-    var i = 0
-    var best = Int.MAX_VALUE
+    val queueSet = queue.toMutableSet()
     while (queue.isNotEmpty()) {
         val state = queue.poll()
-        val mapState = states[(state.minutes + 1) % states.size]
+        queueSet.remove(state)
 
-        if (state.minutes >= best) continue
-        i++
-        if (state.current == end) {
-            best = min(best, state.minutes)
-        }
+        val nextMinute = state.minutes + 1
+        val mapState = states[nextMinute % states.size]
 
-        val neighbors = state.current.neighbors()
+        if (state.position == end) return state.minutes
+
+        val neighbors = state.position.neighbors()
             .filter {
                 it.x in 0 until width && it.y in 0 until height
                         && it !in walls
                         && it !in mapState
-            }.map {
-                state.copy(
-                    current = it,
-                    minutes = state.minutes + 1
-                )
-            }.filter {
-                it !in queue
             }
+            .map { state.copy(position = it, minutes = nextMinute) }
+            .filter { it !in queueSet }
 
         queue.addAll(neighbors)
-        if (state.current !in mapState) {
-            state.copy(
-                minutes = state.minutes + 1,
-            ).takeIf { it !in queue }
-                ?.let { queue.add(it) }
+        queueSet.addAll(neighbors)
+        if (state.position !in mapState) {
+            state.copy(minutes = nextMinute)
+                .takeIf { it !in queueSet }
+                ?.let {
+                    queue.add(it)
+                    queueSet.add(it)
+                }
         }
     }
-    return best
+    error("somehow broke out without returning")
 }
 
 private data class MapState(
-    val current: Point,
+    val position: Point,
     val end: Point,
     val minutes: Int
 ) : Comparable<MapState> {
-    val distance = abs(end.y - current.y) + abs(end.x - current.x)
+    val distance = abs(end.y - position.y) + abs(end.x - position.x)
     val value = distance + minutes
 
     override fun compareTo(other: MapState): Int = value.compareTo(other.value)
