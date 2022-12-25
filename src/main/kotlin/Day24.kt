@@ -1,3 +1,4 @@
+import day.Input
 import day.day
 import day.pointCharMap
 import util.Point
@@ -10,35 +11,35 @@ import kotlin.math.min
 // answer #1: 334
 // answer #2: 934
 
+private fun Input.getStartEnd(): Pair<Point, Point> {
+    val start = lines.first().indexOfFirst { it == '.' }
+        .let { Point(it, 0) }
+    val end = lines.last().indexOfFirst { it == '.' }
+        .let { Point(it, lines.lastIndex) }
+    return start to end
+}
+
 fun main() {
     day(n = 24) {
         part1(expected = 334) { input ->
             val map = input.pointCharMap.toMutableMap()
 
-            val width = input.lines.first().length - 2
-            val height = input.lines.size - 2
+            val (start, end) = input.getStartEnd()
 
-            val start = input.lines.first().indexOfFirst { it == '.' }
-                .let { Point(it, 0) }
-            val end = input.lines.last().indexOfFirst { it == '.' }
-                .let { Point(it, input.lines.lastIndex) }
-
-            val filtered = map.mapValues { listOf(it.value) }
+            val wallsAndBlizzards = map.mapValues { listOf(it.value) }
                 .filter { it != empty }
-            val states = generateMaps(
-                map = filtered,
+
+            val states = generateAllMapStates(
+                map = wallsAndBlizzards,
                 width = input.lines.first().length,
                 height = input.lines.size
             )
 
             solve(
-                minutes = 0,
                 states = states,
                 start = start,
                 end = end,
-                map = filtered,
-                width = input.lines.first().length,
-                height = input.lines.size
+                map = wallsAndBlizzards
             )
         }
         part1 test 2 expect 18
@@ -46,58 +47,45 @@ fun main() {
         part2(expected = 934) { input ->
             val map = input.pointCharMap.toMutableMap()
 
-            val width = input.lines.first().length
-            val height = input.lines.size
+            val (start, end) = input.getStartEnd()
 
-            val start = input.lines.first().indexOfFirst { it == '.' }
-                .let { Point(it, 0) }
-            val end = input.lines.last().indexOfFirst { it == '.' }
-                .let { Point(it, input.lines.lastIndex) }
-
-            // Don't filter away the values, keep them around and filter when moving the blizzards instead
-            // Right now we check neighbors that can be on the border and that's invalid
-            val filtered = map.mapValues { listOf(it.value) }
+            val wallsAndBlizzards = map.mapValues { listOf(it.value) }
                 .filter { it != empty }
-            val states = generateMaps(
-                map = filtered,
+
+            val states = generateAllMapStates(
+                map = wallsAndBlizzards,
                 width = input.lines.first().length,
                 height = input.lines.size
             )
 
             val minutesThere = solve(
-                minutes = 0,
                 states = states,
                 start = start,
                 end = end,
-                map = filtered,
-                width = width,
-                height = height
+                map = wallsAndBlizzards
             )
+
             val minutesBack= solve(
                 minutes = minutesThere,
                 states = states,
                 start = end,
                 end = start,
-                map = filtered,
-                width = width,
-                height = height
+                map = wallsAndBlizzards
             )
-            val minutesThereAgain = solve(
+
+            solve(
                 minutes = minutesBack,
                 states = states,
                 start = start,
                 end = end,
-                map = filtered,
-                width = width,
-                height = height
+                map = wallsAndBlizzards
             )
-            minutesThereAgain
         }
         part2 test 2 expect (18 + 23 + 13)
     }
 }
 
-private fun generateMaps(
+private fun generateAllMapStates(
     map: Map<Point, List<Char>>,
     width: Int,
     height: Int
@@ -106,9 +94,7 @@ private fun generateMaps(
     var blizzards = start.filterValues { it != wall && it != empty }
     var flattened = blizzards.mapValues { '@' }
     val list = mutableListOf<Map<Point, Char>>()
-    val sets = mutableSetOf<Map<Point, Char>>()
     val walls = map.filterValues { it == wall }
-    sets += flattened
     list += flattened
     var i = 0
     while (true) {
@@ -118,11 +104,10 @@ private fun generateMaps(
             .groupBy({ it.first }, { it.second })
         flattened = moved.mapValues { '@' }
         i++
-        if (flattened in sets) {
+        if (flattened in list) {
             "generate finished after $i rounds".log()
             return list
         } else {
-            sets += flattened
             list += flattened
             start = walls + moved
         }
@@ -166,14 +151,14 @@ private val wall = listOf('#')
 private val empty = listOf('.')
 
 private fun solve(
-    minutes: Int,
     states: List<Map<Point, Char>>,
     start: Point,
     end: Point,
     map: Map<Point, List<Char>>,
-    width: Int,
-    height: Int
+    minutes: Int = 0
 ): Int {
+    val width = map.maxOf { it.key.x } - map.minOf { it.key.x } + 1
+    val height = map.maxOf { it.key.y } - map.minOf { it.key.y } + 1
     val queue = PriorityQueue<MapState>()
     val initial = MapState(
         current = start,

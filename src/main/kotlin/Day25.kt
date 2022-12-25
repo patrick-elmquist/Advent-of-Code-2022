@@ -16,22 +16,11 @@ fun main() {
     }
 }
 
-private fun decimalToBase5(n: Long) =
-    when (n) {
-        0L -> "0"
-        1L -> "1"
-        2L -> "2"
-        3L -> "1="
-        4L -> "1-"
-        else -> error("")
-    }
-
 private fun decimalToSnafu(value: Long): String {
     val list = buildList {
         var n = value
         while (n > 0) {
-            val r = n % 5
-            add(decimalToBase5(r))
+            add(decimalToBase5(n % 5))
             n /= 5
         }
     }.reversed()
@@ -78,26 +67,34 @@ private fun decimalToSnafu(value: Long): String {
             else -> error("")
         }
     }
+
     if (remainder != 0) new.add(remainder.toString())
+
     return new.reversed().joinToString("")
 }
 
-private fun snafuToDecimal(snafu: String): Long {
-    var remaining = snafu.reversed()
-    var base = 1L
-    var sum = 0L
-    while (remaining.isNotEmpty()) {
-        val n = when (remaining.first()) {
-            '=' -> -2L
-            '-' -> -1L
-            '0' -> 0L
-            '1' -> 1L
-            '2' -> 2L
-            else -> error("${remaining.first()}")
-        }
-        sum += n * base
-        base *= 5
-        remaining = remaining.drop(1)
+private fun decimalToBase5(n: Long) =
+    when (n) {
+        0L -> "0"
+        1L -> "1"
+        2L -> "2"
+        3L -> "1="
+        4L -> "1-"
+        else -> error("")
     }
-    return sum
-}
+
+private fun base5ToDecimal(n: Char) =
+    when (n) {
+        '=' -> -2L
+        '-' -> -1L
+        '0' -> 0L
+        '1' -> 1L
+        '2' -> 2L
+        else -> error("")
+    }
+
+private fun snafuToDecimal(snafu: String) =
+    snafu.reversed()
+        .fold(0L to 1L) { (sum, base), value ->
+            (sum + base5ToDecimal(value) * base) to (base * 5)
+        }.first
