@@ -1,0 +1,10 @@
+day16.Valve AA has flow rate=0; tunnels lead to valves DD, II, BB
+day16.Valve BB has flow rate=13; tunnels lead to valves CC, AA
+day16.Valve CC has flow rate=2; tunnels lead to valves DD, BB
+day16.Valve DD has flow rate=20; tunnels lead to valves CC, AA, EE
+day16.Valve EE has flow rate=3; tunnels lead to valves FF, DD
+day16.Valve FF has flow rate=0; tunnels lead to valves EE, GG
+day16.Valve GG has flow rate=0; tunnels lead to valves FF, HH
+day16.Valve HH has flow rate=22; tunnel leads to valve GG
+day16.Valve II has flow rate=0; tunnels lead to valves AA, JJ
+day16.Valve JJ has flow rate=21; tunnel leads to valve II
